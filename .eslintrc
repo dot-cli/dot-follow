@@ -1,4 +1,7 @@
 {
+  "parserOptions": {
+    "warnOnUnsupportedTypeScriptVersion": false
+  },
   "plugins": ["prettier"],
   "extends": ["oclif", "oclif-typescript"],
   "rules": {
