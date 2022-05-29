@@ -1,0 +1,23 @@
+{
+  "plugins": ["prettier"],
+  "extends": ["oclif", "oclif-typescript"],
+  "rules": {
+    "prettier/prettier": "error",
+    "indent": ["error", 2],
+    "object-curly-spacing": ["error", "always"],
+    "comma-dangle": ["error", "never"],
+    "padding-line-between-statements": "off",
+    "arrow-parens": ["error", "always"],
+    "node/no-unsupported-features/es-syntax": [
+      "error",
+      { "ignores": ["modules"] }
+    ],
+    "camelcase": ["error", { "properties": "never" }],
+    "unicorn/prefer-node-protocol": "off",
+    "operator-linebreak": [
+      "error",
+      "after",
+      { "overrides": { "?": "before", ":": "before" } }
+    ]
+  }
+}
