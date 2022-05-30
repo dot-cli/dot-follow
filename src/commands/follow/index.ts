@@ -1,5 +1,8 @@
 import { Command } from '@oclif/core'
 
+// eslint-disable-next-line node/no-missing-import
+import { getUser } from 'lib/github'
+
 export default class Follow extends Command {
   static description = 'Follow a developer'
 
@@ -10,8 +13,19 @@ export default class Follow extends Command {
   ]
 
   async run(): Promise<void> {
-    const { args } = await this.parse(Follow)
+    const {
+      args: { developer }
+    } = await this.parse(Follow)
 
-    this.log(`Follow ${args.developer}?`)
+    const user = await getUser(developer)
+    if (!user) {
+      this.log(`${developer} not found 🤷`)
+      return
+    }
+    if (!user.twitter_username) {
+      this.log(`${developer} has not twitter in their github profile 🤷`)
+      return
+    }
+    this.log(`🐦 twitter.com/@${user.twitter_username}`)
   }
 }

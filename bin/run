@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+const { registerTSConfigPaths } = require('../tsconfig.helper')
+registerTSConfigPaths('./dist')
+
 const oclif = require('@oclif/core')
 
 oclif

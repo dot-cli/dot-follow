@@ -6,9 +6,13 @@
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
-    "target": "es2019"
+    "target": "es2019",
+    "useUnknownInCatchVariables": false,
+    "baseUrl": ".",
+    "paths": {
+      "commands/*": ["src/commands/*"],
+      "lib/*": ["src/lib/*"]
+    }
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }
