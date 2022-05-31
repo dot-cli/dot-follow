@@ -21,6 +21,7 @@
       "error",
       "after",
       { "overrides": { "?": "before", ":": "before" } }
-    ]
+    ],
+    "@typescript-eslint/ban-ts-comment": "off"
   }
 }
