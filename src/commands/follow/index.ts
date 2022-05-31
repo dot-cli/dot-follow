@@ -1,7 +1,11 @@
 import { Command } from '@oclif/core'
 
 // eslint-disable-next-line node/no-missing-import
-import { getUser } from 'lib/github'
+import { getUser, getReadme } from 'lib/github'
+// eslint-disable-next-line node/no-missing-import
+import { devLinks } from 'lib/links'
+// eslint-disable-next-line node/no-missing-import
+import { parseLinks } from 'lib/markdown'
 
 export default class Follow extends Command {
   static description = 'Follow a developer'
@@ -22,10 +26,23 @@ export default class Follow extends Command {
       this.log(`${developer} not found 🤷`)
       return
     }
-    if (!user.twitter_username) {
-      this.log(`${developer} has not twitter in their github profile 🤷`)
-      return
+
+    const excludeDevLinks: string[] = []
+    if (user.twitter_username) {
+      excludeDevLinks.push('twitter')
+      this.log(`Twitter: twitter.com/${user.twitter_username}`)
     }
-    this.log(`🐦 twitter.com/@${user.twitter_username}`)
+    if (user.blog) {
+      excludeDevLinks.push('website')
+      this.log(`Website: ${user.blog}`)
+    }
+
+    const readme = await getReadme(developer)
+    if (readme) {
+      const links = devLinks(parseLinks(readme), excludeDevLinks)
+      for (const link of links) {
+        this.log(`${link.title}: ${link.href}`)
+      }
+    }
   }
 }

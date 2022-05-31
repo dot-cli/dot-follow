@@ -1,11 +1,7 @@
 import axios from 'axios'
 
-interface GithubUser {
-  login: string
-  name: string
-  bio?: string
-  twitter_username?: string // eslint-disable-line camelcase
-}
+// eslint-disable-next-line node/no-missing-import
+import type { GithubUser } from 'lib/types'
 
 export const getUser = async (username: string): Promise<GithubUser | null> => {
   try {
