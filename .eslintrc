@@ -22,6 +22,7 @@
       "after",
       { "overrides": { "?": "before", ":": "before" } }
     ],
-    "@typescript-eslint/ban-ts-comment": "off"
+    "@typescript-eslint/ban-ts-comment": "off",
+    "guard-for-in": "off"
   }
 }

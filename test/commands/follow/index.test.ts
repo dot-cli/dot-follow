@@ -6,10 +6,13 @@ import cmd from 'commands/follow'
 describe('follow', () => {
   test.stdout().it('follow chico', async (ctx) => {
     await cmd.run(['chico'])
-    expect(ctx.stdout).to.contain('Twitter: twitter.com/ccharlesworth')
+    expect(ctx.stdout).to.contain('Twitter: https://twitter.com/ccharlesworth')
     expect(ctx.stdout).to.contain('Website: http://chicocharlesworth.com')
     expect(ctx.stdout).to.contain(
       'LinkedIn: https://www.linkedin.com/in/chicocharlesworth'
+    )
+    expect(ctx.stdout).to.contain(
+      'Instagram: https://instagram.com/ccharlesworth'
     )
   })
 

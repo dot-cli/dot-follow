@@ -3,9 +3,11 @@ import { Command } from '@oclif/core'
 // eslint-disable-next-line node/no-missing-import
 import { getUser, getReadme } from 'lib/github'
 // eslint-disable-next-line node/no-missing-import
-import { devLinks } from 'lib/links'
+import { parseDevLinks } from 'lib/links'
 // eslint-disable-next-line node/no-missing-import
 import { parseLinks } from 'lib/markdown'
+// eslint-disable-next-line node/no-missing-import
+import type { Link } from 'lib/types'
 
 export default class Follow extends Command {
   static description = 'Follow a developer'
@@ -27,22 +29,27 @@ export default class Follow extends Command {
       return
     }
 
-    const excludeDevLinks: string[] = []
+    // Add links from github & github readme
+    const links: Link[] = []
     if (user.twitter_username) {
-      excludeDevLinks.push('twitter')
-      this.log(`Twitter: twitter.com/${user.twitter_username}`)
+      links.push({
+        href: `https://twitter.com/${user.twitter_username}`,
+        title: 'Twitter'
+      })
     }
     if (user.blog) {
-      excludeDevLinks.push('website')
-      this.log(`Website: ${user.blog}`)
+      links.push({ href: user.blog, title: 'Website' })
     }
-
     const readme = await getReadme(developer)
     if (readme) {
-      const links = devLinks(parseLinks(readme), excludeDevLinks)
-      for (const link of links) {
-        this.log(`${link.title}: ${link.href}`)
-      }
+      const readmeLinks = parseLinks(readme)
+      links.push(...readmeLinks)
+    }
+
+    // Parse dev links & log them
+    const devLinks = await parseDevLinks(links)
+    for (const link of devLinks) {
+      this.log(`${link.title}: ${link.href}`)
     }
   }
 }

@@ -3,11 +3,15 @@ import type { Link } from 'lib/types'
 
 import DevLinks from './dev-links'
 
-export const devLinks = (links: Link[], excludeDevLinks: string[]): Link[] => {
+export const parseDevLinks = async (
+  links: Link[],
+  excludeDevLinks: string[] = []
+): Promise<Link[]> => {
   const devLinks = new DevLinks(excludeDevLinks)
-  for (const link of links) {
-    devLinks.addLink(link)
-    devLinks.addSiteLink(link)
-  }
+  devLinks.addLinks(links)
+
+  const siteLinks = await devLinks.parseSites()
+  devLinks.addLinks(siteLinks)
+
   return devLinks.getLinks()
 }
