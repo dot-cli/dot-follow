@@ -4,6 +4,12 @@ import getHandles from 'social-media-scraper'
 // eslint-disable-next-line node/no-missing-import
 import type { Link } from 'lib/types'
 
+export const buildSocialLink = (title: string, username: string): Link => {
+  const href = `https://${title.toLowerCase()}.com/${username}`
+  href.replace('linkedin.com', 'linkedin.com/in')
+  return { href, title }
+}
+
 export default class DevLinks {
   private devLinks: Link[] = []
   private excludeDevLinks: string[] = []
@@ -23,12 +29,6 @@ export default class DevLinks {
 
   public constructor(excludeDevLinks: string[]) {
     this.excludeDevLinks = excludeDevLinks
-  }
-
-  public buildSocialLink(title: string, username: string): Link {
-    const href = `https://${title.toLowerCase()}.com/${username}`
-    href.replace('linkedin.com', 'linkedin.com/in')
-    return { href, title }
   }
 
   public matchesLinkType = (link: Link): boolean =>
@@ -84,8 +84,9 @@ export default class DevLinks {
     let handles = []
     try {
       handles = await getHandles(siteLinks)
-    } catch (error) {
-      console.error(`ERROR: Failed to parse ${siteLinks}`, error)
+    } catch {
+      // TODO Ignore error
+      // console.error(`ERROR: Failed to parse ${siteLinks}`, error)
     }
 
     const links: Link[] = []
@@ -95,7 +96,7 @@ export default class DevLinks {
           const usernames = handle[site][key]
           // If more than one username then could have false positives
           if (usernames.length === 1) {
-            links.push(this.buildSocialLink(key, usernames[0]))
+            links.push(buildSocialLink(key, usernames[0]))
           }
         }
       }

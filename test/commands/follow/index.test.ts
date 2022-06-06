@@ -19,6 +19,6 @@ describe('follow', () => {
   test.stdout().it('github user not found', async (ctx) => {
     const notAGithubUser = 'not-a-github-user'
     await cmd.run([notAGithubUser])
-    expect(ctx.stdout).to.contain(`${notAGithubUser} not found 🤷`)
+    expect(ctx.stdout).to.contain('Not found 🤷')
   })
 })

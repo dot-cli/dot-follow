@@ -1,21 +1,21 @@
 import { Command } from '@oclif/core'
 
 // eslint-disable-next-line node/no-missing-import
-import { getUser, getReadme } from 'lib/github'
+import { getUsers } from 'lib/github'
 // eslint-disable-next-line node/no-missing-import
-import { parseDevLinks } from 'lib/links'
-// eslint-disable-next-line node/no-missing-import
-import { parseLinks } from 'lib/markdown'
-// eslint-disable-next-line node/no-missing-import
-import type { Link } from 'lib/types'
+import { getUserDevLinks } from 'lib/links'
 
 export default class Follow extends Command {
-  static description = 'Follow a developer'
+  static description = 'Follow developers'
 
-  static examples = ['$ oex follow chico']
+  static examples = ['$ oex follow chico', '$ oex follow chico/following']
 
   static args = [
-    { name: 'developer', description: 'Developer to follow', required: true }
+    {
+      name: 'developer',
+      description: 'Developer(s) to follow, e.g. chico or chico/following',
+      required: true
+    }
   ]
 
   async run(): Promise<void> {
@@ -23,33 +23,26 @@ export default class Follow extends Command {
       args: { developer }
     } = await this.parse(Follow)
 
-    const user = await getUser(developer)
-    if (!user) {
-      this.log(`${developer} not found 🤷`)
-      return
-    }
+    let devLinksFound = false
+    const users = await getUsers(developer)
+    const usernames = users.map((user) => user.login)
 
-    // Add links from github & github readme
-    const links: Link[] = []
-    if (user.twitter_username) {
-      links.push({
-        href: `https://twitter.com/${user.twitter_username}`,
-        title: 'Twitter'
-      })
+    // TODO Add promise pool to getUserDevLinks inside the loop
+    // for faster but controlled performance & also enable no-await-in-loop
+    /* eslint-disable no-await-in-loop */
+    for (const username of usernames) {
+      const devLinks = await getUserDevLinks(username)
+      if (devLinks.length === 0) {
+        continue
+      }
+      devLinksFound = true
+      this.log(`\nDev links for ${username}:`)
+      for (const link of devLinks) {
+        this.log(`${link.title}: ${link.href}`)
+      }
     }
-    if (user.blog) {
-      links.push({ href: user.blog, title: 'Website' })
-    }
-    const readme = await getReadme(developer)
-    if (readme) {
-      const readmeLinks = parseLinks(readme)
-      links.push(...readmeLinks)
-    }
-
-    // Parse dev links & log them
-    const devLinks = await parseDevLinks(links)
-    for (const link of devLinks) {
-      this.log(`${link.title}: ${link.href}`)
+    if (!devLinksFound) {
+      this.log('Not found 🤷')
     }
   }
 }
