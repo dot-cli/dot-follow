@@ -5,8 +5,10 @@ import getHandles from 'social-media-scraper'
 import type { Link } from 'lib/types'
 
 export const buildSocialLink = (title: string, username: string): Link => {
-  const href = `https://${title.toLowerCase()}.com/${username}`
-  href.replace('linkedin.com', 'linkedin.com/in')
+  const href = `https://${title.toLowerCase()}.com/${username}`.replace(
+    'linkedin.com',
+    'linkedin.com/in'
+  )
   return { href, title }
 }
 
