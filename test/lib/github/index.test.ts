@@ -2,7 +2,6 @@ import axios from 'axios'
 import { expect } from 'chai'
 import * as sinon from 'sinon'
 
-// eslint-disable-next-line node/no-missing-import
 import { getUser, getReadme } from 'lib/github'
 
 describe('github', () => {

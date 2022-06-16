@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 
-// eslint-disable-next-line node/no-missing-import
 import { buildSocialLink } from 'lib/links/dev-links'
 
 describe('build social links', () => {

@@ -1,8 +1,5 @@
-// eslint-disable-next-line node/no-missing-import
 import { getUser, getReadme } from 'lib/github'
-// eslint-disable-next-line node/no-missing-import
 import { parseLinks } from 'lib/markdown'
-// eslint-disable-next-line node/no-missing-import
 import type { Link } from 'lib/types'
 
 import DevLinks, { buildSocialLink } from './dev-links'

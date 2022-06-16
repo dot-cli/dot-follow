@@ -1,8 +1,6 @@
 import { Command } from '@oclif/core'
 
-// eslint-disable-next-line node/no-missing-import
 import { getUsers } from 'lib/github'
-// eslint-disable-next-line node/no-missing-import
 import { getUserDevLinks } from 'lib/links'
 
 export default class Follow extends Command {

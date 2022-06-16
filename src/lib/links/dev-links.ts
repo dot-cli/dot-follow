@@ -1,7 +1,6 @@
 // @ts-ignore
 import getHandles from 'social-media-scraper'
 
-// eslint-disable-next-line node/no-missing-import
 import type { Link } from 'lib/types'
 
 export const buildSocialLink = (title: string, username: string): Link => {

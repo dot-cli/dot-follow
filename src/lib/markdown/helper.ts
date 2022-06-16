@@ -1,4 +1,3 @@
-// eslint-disable-next-line node/no-missing-import
 import type { Link } from 'lib/types'
 
 const getHtmlAttribute = (html: string, attribute: string) => {

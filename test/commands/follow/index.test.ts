@@ -1,6 +1,5 @@
 import { expect, test } from '@oclif/test'
 
-// eslint-disable-next-line node/no-missing-import
 import cmd from 'commands/follow'
 
 describe('follow', () => {
