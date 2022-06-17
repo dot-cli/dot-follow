@@ -1,0 +1,9 @@
+framework: mocha
+
+preRun:
+  command:
+    - yarn install
+
+postMerge:
+  pattern:
+    - 'test/**/*.ts'
