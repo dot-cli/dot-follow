@@ -1,6 +1,7 @@
 // @ts-ignore
 import getHandles from 'social-media-scraper'
 
+import { Sites } from 'lib/constants'
 import type { Link } from 'lib/types'
 
 export const buildSocialLink = (title: string, username: string): Link => {
@@ -15,18 +16,9 @@ export default class DevLinks {
   private devLinks: Link[] = []
   private excludeDevLinks: string[] = []
 
-  readonly linkTypes = [
-    { title: 'Github', match: 'github.com/' },
-    { title: 'Gitlab', match: 'gitlab.com/' },
-    { title: 'Twitter', match: 'twitter.com/' },
-    { title: 'LinkedIn', match: 'linkedin.com/in/' },
-    { title: 'Dev.to', match: 'dev.to/' },
-    { title: 'Youtube', match: 'youtube.com/' },
-    { title: 'Twitch', match: 'twitch.tv/' },
-    { title: 'Instagram', match: 'instagram.com/' }
-  ]
+  readonly linkTypes = Object.values(Sites)
 
-  readonly titles = ['Website', 'Blog']
+  readonly titles = [Sites.Website.title, Sites.Blog.title]
 
   public constructor(excludeDevLinks: string[]) {
     this.excludeDevLinks = excludeDevLinks
@@ -34,7 +26,9 @@ export default class DevLinks {
 
   public matchesLinkType = (link: Link): boolean =>
     this.linkTypes.some((linkType) =>
-      link.href?.toLowerCase().includes(linkType.match)
+      linkType.urlPrefix
+        ? link.href?.toLowerCase().includes(linkType.urlPrefix)
+        : false
     )
 
   public addLinks = (links: Link[]): void => {
@@ -50,10 +44,11 @@ export default class DevLinks {
 
   public addLink = (link: Link): void => {
     for (const linkType of this.linkTypes) {
-      const { title, match } = linkType
+      const { title, urlPrefix } = linkType
       if (
         !this.excludeDevLinks.includes(title.toLowerCase()) &&
-        link.href?.includes(match) &&
+        urlPrefix &&
+        link.href?.includes(urlPrefix) &&
         !this.devLinks.some((l) => l.title === title)
       ) {
         this.devLinks.push({ href: link.href, title, isSocialLink: true })

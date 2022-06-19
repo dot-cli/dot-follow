@@ -1,6 +1,7 @@
 import { Command } from '@oclif/core'
 
-import { getUsers } from 'lib/github'
+import { Sites } from 'lib/constants'
+import { getUsers as getGithubUsers } from 'lib/github'
 import { getUserDevLinks } from 'lib/links'
 
 export default class Follow extends Command {
@@ -22,19 +23,23 @@ export default class Follow extends Command {
     } = await this.parse(Follow)
 
     let devLinksFound = false
-    const users = await getUsers(developer)
-    const usernames = users.map((user) => user.login)
+
+    const githubUsers = await getGithubUsers(developer)
+    const socialUsers = githubUsers.map((user) => ({
+      type: Sites.Github.type,
+      username: user.login
+    }))
 
     // TODO Add promise pool to getUserDevLinks inside the loop
     // for faster but controlled performance & also enable no-await-in-loop
     /* eslint-disable no-await-in-loop */
-    for (const username of usernames) {
-      const devLinks = await getUserDevLinks(username)
+    for (const socialUser of socialUsers) {
+      const devLinks = await getUserDevLinks(socialUser)
       if (devLinks.length === 0) {
         continue
       }
       devLinksFound = true
-      this.log(`\nDev links for ${username}:`)
+      this.log(`\nDev links for ${socialUser.username}:`)
       for (const link of devLinks) {
         this.log(`${link.title}: ${link.href}`)
       }
