@@ -79,7 +79,7 @@ export default class DevLinks {
 
     let handles = []
     try {
-      handles = await getHandles(siteLinks)
+      handles = await getHandles.default(siteLinks)
     } catch {
       // TODO Ignore error
       // console.error(`ERROR: Failed to parse ${siteLinks}`, error)

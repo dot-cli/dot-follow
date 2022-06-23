@@ -20,6 +20,7 @@
     "@oclif/core": "^1",
     "@oclif/plugin-help": "^5",
     "@oclif/plugin-plugins": "^2.1.0",
+    "application-config": "^2.0.0",
     "axios": "^0.27.2",
     "remarkable": "^2.0.1",
     "social-media-scraper": "^0.0.7"
