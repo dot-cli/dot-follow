@@ -1,9 +1,13 @@
 import { Sites } from 'lib/constants'
 import { getUser as getGihubUser, getReadme } from 'lib/github'
 import { parseLinks } from 'lib/markdown'
+import { getUser as getTwitterUser } from 'lib/twitter'
 import type { SocialUser, Link } from 'lib/types'
 
 import DevLinks, { buildSocialLink } from './dev-links'
+
+// TODO Read token from config or env variable?
+const twitterAuthToken = process.env.TWITTER_AUTH_TOKEN
 
 export const parseDevLinks = async (
   links: Link[],
@@ -44,7 +48,16 @@ export const getUserDevLinks = async (
       const readmeLinks = parseLinks(readme)
       links.push(...readmeLinks)
     }
+  } else if (type === Sites.Twitter.type && twitterAuthToken) {
+    const user = await getTwitterUser(twitterAuthToken, username)
+    if (user) {
+      links.push(buildSocialLink(Sites.Twitter.title, user.username))
+      const { url } = user
+      if (url) {
+        links.push({ href: url, title: Sites.Website.title })
+      }
+    }
   }
 
-  return parseDevLinks(links)
+  return links
 }

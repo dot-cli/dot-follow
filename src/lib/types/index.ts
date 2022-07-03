@@ -24,6 +24,13 @@ export interface GithubUser {
   twitter_username?: string // eslint-disable-line camelcase
 }
 
+export interface TwitterUser {
+  id: string
+  username: string
+  description?: string
+  url?: string
+}
+
 export interface Site {
   type: SiteType
   title: string
