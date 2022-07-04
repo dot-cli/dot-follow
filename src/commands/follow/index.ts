@@ -41,8 +41,14 @@ export default class Follow extends Command {
       username: user.login
     }))
 
-    // TODO if socialUsers is empty (i.e. github user not found)
+    // If socialUsers is empty (i.e. github user not found)
     // then revert to searching via Twitter instead
+    if (socialUsers.length === 0) {
+      socialUsers.push({
+        type: Sites.Twitter.type,
+        username: developer
+      })
+    }
 
     // TODO Add promise pool to getUserDevLinks inside the loop
     // for faster but controlled performance & also enable no-await-in-loop
