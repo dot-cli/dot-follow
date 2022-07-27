@@ -22,6 +22,8 @@
     "@oclif/plugin-plugins": "^2.1.0",
     "application-config": "^2.0.0",
     "axios": "^0.27.2",
+    "inquirer": "^8.2.0",
+    "open": "^8.4.0",
     "remarkable": "^2.0.1",
     "social-media-scraper": "^0.0.7"
   },
@@ -30,6 +32,7 @@
     "@oclif/test": "^2.1.0",
     "@trivago/prettier-plugin-sort-imports": "^3.2.0",
     "@types/chai": "^4",
+    "@types/inquirer": "^8.2.1",
     "@types/mocha": "^9.1.1",
     "@types/node": "^16.11.36",
     "chai": "^4",
@@ -71,7 +74,8 @@
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "yarn lint && ./node_modules/.bin/madge --circular src",
     "prepack": "yarn build && oclif manifest && oclif readme",
-    "test": "nyc mocha --forbid-only \"test/**/*.test.ts\"",
+    "test": "NODE_ENV=test nyc mocha --forbid-only \"test/**/*.test.ts\"",
+    "test-single": "NODE_ENV=test mocha",
     "version": "oclif readme && git add README.md"
   },
   "engines": {

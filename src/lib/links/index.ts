@@ -6,9 +6,6 @@ import type { SocialUser, Link } from 'lib/types'
 
 import DevLinks, { buildSocialLink } from './dev-links'
 
-// TODO Read token from config or env variable?
-const twitterAuthToken = process.env.TWITTER_AUTH_TOKEN
-
 export const parseDevLinks = async (
   links: Link[],
   excludeDevLinks: string[] = []
@@ -48,8 +45,8 @@ export const getUserDevLinks = async (
       const readmeLinks = parseLinks(readme)
       links.push(...readmeLinks)
     }
-  } else if (type === Sites.Twitter.type && twitterAuthToken) {
-    const user = await getTwitterUser(twitterAuthToken, username)
+  } else if (type === Sites.Twitter.type) {
+    const user = await getTwitterUser(username)
     if (user) {
       links.push(buildSocialLink(Sites.Twitter.title, user.username))
       const { url } = user

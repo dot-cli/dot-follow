@@ -4,8 +4,6 @@ import * as sinon from 'sinon'
 
 import { getUser } from 'lib/twitter'
 
-const token = 'mock_twitter_token'
-
 describe('twitter', () => {
   afterEach(() => sinon.restore())
 
@@ -22,7 +20,7 @@ describe('twitter', () => {
     }
     const stub = sinon.stub(axios, 'get').resolves({ data: mockData })
 
-    expect(await getUser(token, username)).to.deep.equal(mockData.data)
+    expect(await getUser(username)).to.deep.equal(mockData.data)
 
     const fields = 'description,entities,id,name,url,username'
     const apiUrl = `https://api.twitter.com/2/users/by/username/${username}?user.fields=${fields}`
@@ -32,14 +30,14 @@ describe('twitter', () => {
 
   it('not found response', async () => {
     sinon.stub(axios, 'get').rejects({ response: { status: 404 } })
-    expect(await getUser('token', 'not-a-twitter-user')).to.be.null
+    expect(await getUser('not-a-twitter-user')).to.be.null
   })
 
   it('failed response', async () => {
     const errorResponse = { response: { status: 500 } }
     sinon.stub(axios, 'get').rejects(errorResponse)
     try {
-      await getUser('token', 'api-error')
+      await getUser('api-error')
     } catch (error) {
       expect(error).to.equal(errorResponse)
       return
