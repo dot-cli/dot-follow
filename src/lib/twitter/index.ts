@@ -18,15 +18,40 @@ export const AUTH_REFRESH_TOKEN_URL =
   process.env.TWITTER_AUTH_REFRESH_TOKEN_URL ||
   `${AUTH_URL_DEFAULT_PREFIX}/refreshToken?refreshToken=`
 
-const mapResponseToUser = (data: TwitterUserData) => {
-  if (!data) {
-    return null
-  }
-  const { id, username, description, url, entities } = data
+export const USER_FIELDS =
+  'id,username,name,description,url,protected,verified,public_metrics,pinned_tweet_id,entities'
+
+const mapResponseToUser = (data: TwitterUserData): TwitterUser => {
+  const { data: user, includes } = data
+  const { description, url, entities } = user
+  const { pinned_tweet_id: pinnedTweetId } = user
+
+  // Unfurl URL
   const unfurledUrl = entities?.url?.urls?.find(
     (u: { url: string }) => u.url === url
   )?.expanded_url
-  return { id, username, description, url: unfurledUrl || url }
+
+  // Unfurl description
+  let unfurledDescription = description
+  for (const url of entities?.description?.urls || []) {
+    if (url?.url && url?.expanded_url) {
+      unfurledDescription = unfurledDescription?.replace(
+        url.url,
+        url.expanded_url
+      )
+    }
+  }
+
+  const pinnedTweet = pinnedTweetId
+    ? includes?.tweets?.find((tweet) => tweet.id === pinnedTweetId)?.text
+    : undefined
+
+  return {
+    ...user,
+    url: unfurledUrl || url,
+    description: unfurledDescription,
+    pinnedTweet
+  }
 }
 
 export const getAuthURL = (): string => {
@@ -118,10 +143,19 @@ export const getUser = async (
 ): Promise<TwitterUser | null> => {
   try {
     const headers = await getAuthHeaders()
-    const fields = 'description,entities,id,name,url,username'
-    const url = `https://api.twitter.com/2/users/by/username/${username}?user.fields=${fields}`
+    const url = `https://api.twitter.com/2/users/by/username/${username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
     const response = await axios.get(url, { headers })
-    return mapResponseToUser(response?.data?.data)
+    if (response?.data?.errors) {
+      if (
+        response?.data?.errors.find(
+          (error: any) => error?.title === 'Not Found Error'
+        )
+      ) {
+        return null
+      }
+      throw new Error(response?.data?.errors[0])
+    }
+    return mapResponseToUser(response?.data)
   } catch (error) {
     if (error?.response?.status === 404 || error?.response?.status === 400) {
       return null

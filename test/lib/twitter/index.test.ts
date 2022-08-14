@@ -5,6 +5,7 @@ import * as sinon from 'sinon'
 import * as config from 'lib/config'
 import {
   AUTH_REFRESH_TOKEN_URL,
+  USER_FIELDS,
   getAuthToken,
   getAuthUserId,
   getUser,
@@ -55,40 +56,56 @@ describe('twitter', () => {
   })
 
   it('get ccharlesworth user', async () => {
+    const pinnedTweet =
+      'The startup conversations podcast series by @gonsanchezs is great 🎙️, my first podcast interview, thank you Gonz!'
     const mockData = {
       id: '24870588',
       username: 'ccharlesworth',
       description:
-        'CTO @ https://t.co/HmZI5D5Ooh. ♥️ Code, Robots & CLIs. What I do for fun 👉 @codeandrobots, @clidevs, @lenkacam.',
-      url: 'http://chicocharlesworth.com'
+        'CTO @ https://brdg.app. ♥️ Code, Robots & CLIs. What I do for fun 👉 @codeandrobots, @clidevs, @lenkacam.',
+      url: 'http://chicocharlesworth.com',
+      pinned_tweet_id: '1447849829967798277',
+      pinnedTweet,
+      entities: {
+        url: {
+          urls: [
+            {
+              url: 'https://t.co/mLvwvEunQX',
+              expanded_url: 'http://chicocharlesworth.com'
+            }
+          ]
+        },
+        description: {
+          urls: [
+            {
+              url: 'https://t.co/HmZI5D5Ooh',
+              expanded_url: 'https://brdg.app'
+            }
+          ]
+        }
+      }
     }
     const mockResponse = {
       data: {
-        id: mockData.id,
-        username: mockData.username,
-        description: mockData.description,
+        ...mockData,
         url: 'https://t.co/mLvwvEunQX',
-        entities: {
-          url: {
-            urls: [
-              {
-                start: 0,
-                end: 23,
-                url: 'https://t.co/mLvwvEunQX',
-                expanded_url: mockData.url,
-                display_url: 'chicocharlesworth.com'
-              }
-            ]
+        description:
+          'CTO @ https://brdg.app. ♥️ Code, Robots & CLIs. What I do for fun 👉 @codeandrobots, @clidevs, @lenkacam.'
+      },
+      includes: {
+        tweets: [
+          {
+            id: '1447849829967798277',
+            text: pinnedTweet
           }
-        }
+        ]
       }
     }
     const stub = sinon.stub(axios, 'get').resolves({ data: mockResponse })
 
     expect(await getUser(mockData.username)).to.deep.equal(mockData)
 
-    const fields = 'description,entities,id,name,url,username'
-    const apiUrl = `https://api.twitter.com/2/users/by/username/${mockData.username}?user.fields=${fields}`
+    const apiUrl = `https://api.twitter.com/2/users/by/username/${mockData.username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
 
     expect(stub.calledWith(apiUrl)).to.be.true
   })
@@ -115,8 +132,7 @@ describe('twitter', () => {
       id: '11111111',
       username: 'test'
     }
-    const fields = 'description,entities,id,name,url,username'
-    apiUrl = `https://api.twitter.com/2/users/by/username/${userToFollow.username}?user.fields=${fields}`
+    apiUrl = `https://api.twitter.com/2/users/by/username/${userToFollow.username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
     mockData = { data: { id: userToFollow.id } }
     getStub.withArgs(apiUrl).resolves({ data: mockData })
 

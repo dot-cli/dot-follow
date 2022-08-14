@@ -30,8 +30,37 @@ export interface GithubUser {
 export interface TwitterUser {
   id: string
   username: string
+  name: string
   description?: string
   url?: string
+  protected?: boolean
+  verified?: boolean
+  pinned_tweet_id?: string // eslint-disable-line camelcase
+  pinnedTweet?: string
+  public_metrics?: // eslint-disable-line camelcase
+  {
+    followers_count?: number // eslint-disable-line camelcase
+    following_count?: number // eslint-disable-line camelcase
+    tweet_count?: number // eslint-disable-line camelcase
+  }
+  entities?: {
+    url?: {
+      urls: [
+        {
+          url: string
+          expanded_url: string // eslint-disable-line camelcase
+        }
+      ]
+    }
+    description?: {
+      urls: [
+        {
+          url: string
+          expanded_url: string // eslint-disable-line camelcase
+        }
+      ]
+    }
+  }
 }
 
 export interface Site {

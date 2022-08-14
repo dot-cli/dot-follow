@@ -51,7 +51,11 @@ export default class DevLinks {
         link.href?.includes(urlPrefix) &&
         !this.devLinks.some((l) => l.title === title)
       ) {
-        this.devLinks.push({ href: link.href, title, isSocialLink: true })
+        this.devLinks.push({
+          ...link,
+          title,
+          isSocialLink: true
+        })
       }
     }
   }

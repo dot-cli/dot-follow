@@ -13,13 +13,16 @@ import {
   getTwitterUsernameFromDevLinks
 } from 'lib/links'
 import { confirm } from 'lib/prompt'
-import { followUser as followTwitterUser } from 'lib/twitter'
+import {
+  getUser as getTwitterUser,
+  followUser as followTwitterUser
+} from 'lib/twitter'
 
 const log = (obj: Record<string, any>): void => {
   for (const key in obj) {
-    if (obj[key]) {
+    if (obj[key] || typeof obj[key] === 'boolean') {
       const keyName = `${key.slice(0, 1).toUpperCase()}${key.slice(1)}`
-      console.log(`${keyName}: ${obj[key]}`)
+      console.log(`\t${keyName}: ${obj[key]}`)
     }
   }
 }
@@ -61,20 +64,6 @@ export default class Setup extends Command {
       /* eslint-disable no-await-in-loop */
       for (const login of githubUsersToFollow) {
         this.log(`\nScanning ${login}...`)
-        // Get github user details
-        const githubUsers = await getGithubUsers(login)
-        const { name, company, blog, bio, followers, following } =
-          githubUsers[0]
-
-        // Log github user details
-        log({
-          name,
-          company: resolveCompanyHandles(company),
-          blog,
-          bio,
-          followers,
-          following
-        })
 
         // Get dev links based on github username
         const devLinks = await getUserDevLinks({
@@ -93,6 +82,41 @@ export default class Setup extends Command {
         const parsedDevLinks = await parseDevLinks(devLinks)
         for (const link of parsedDevLinks) {
           this.log(`${link.title}: ${link.href}`)
+
+          if (link.title === Sites.Github.title) {
+            const githubUsers = await getGithubUsers(login)
+            const { name, company, blog, bio, followers, following } =
+              githubUsers[0]
+            log({
+              name,
+              company: resolveCompanyHandles(company),
+              blog,
+              bio,
+              followers,
+              following
+            })
+          } else if (link.title === Sites.Twitter.title && link.username) {
+            const {
+              name,
+              url,
+              public_metrics, // eslint-disable-line camelcase
+              protected: protectedFlag,
+              verified,
+              description,
+              pinnedTweet
+            } = (await getTwitterUser(link.username)) || {}
+            log({
+              name,
+              url,
+              followers: public_metrics?.followers_count,
+              following: public_metrics?.following_count,
+              tweetAndRetweets: public_metrics?.tweet_count,
+              protected: protectedFlag,
+              verified,
+              description,
+              pinnedTweet
+            })
+          }
         }
 
         const isFollowConfirmed = await confirm(`Follow ${login}?`)
