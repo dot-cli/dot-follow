@@ -6,6 +6,17 @@ import type { SocialUser, Link } from 'lib/types'
 
 import DevLinks, { buildSocialLink } from './dev-links'
 
+export const getDevLink = (links: Link[], title: string): Link | undefined => {
+  return links.find((link) => link.title === title)
+}
+
+export const getTwitterUsernameFromDevLinks = (
+  links: Link[]
+): string | undefined => {
+  const devLink = getDevLink(links, Sites.Twitter.title)
+  return devLink?.username
+}
+
 export const parseDevLinks = async (
   links: Link[],
   excludeDevLinks: string[] = []

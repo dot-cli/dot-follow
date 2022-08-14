@@ -1,11 +1,33 @@
 import axios from 'axios'
 import { expect } from 'chai'
+// @ts-ignore
+import Github from 'github-api'
 import * as sinon from 'sinon'
 
-import { getUser, getReadme } from 'lib/github'
+import { getUserProfile, getUser, followUser, getReadme } from 'lib/github'
 
 describe('github', () => {
   afterEach(() => sinon.restore())
+
+  it('get profile', async () => {
+    const mockProfile = {
+      login: 'test',
+      name: 'Test Tester',
+      company: 'test.org',
+      bio: 'Test bio',
+      blog: 'Test blog',
+      twitter_username: 'test',
+      followers: 10,
+      following: 5
+    }
+    sinon.stub(Github.prototype, 'getUser').returns({
+      getProfile: async () => ({
+        data: mockProfile
+      })
+    })
+
+    expect(await getUserProfile()).to.deep.equal(mockProfile)
+  })
 
   it('get chico user', async () => {
     const username = 'chico'
@@ -16,6 +38,16 @@ describe('github', () => {
 
     const apiUrl = `https://api.github.com/users/${username}`
     expect(stub.calledWith(apiUrl)).to.be.true
+  })
+
+  it('follow user', async () => {
+    const stub = sinon.stub().resolves()
+    sinon.stub(Github.prototype, 'getUser').returns({ follow: stub })
+
+    const usernameToFollow = 'test'
+    await followUser(usernameToFollow)
+
+    expect(stub.calledWith(usernameToFollow)).to.be.true
   })
 
   it('not found response', async () => {

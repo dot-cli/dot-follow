@@ -9,9 +9,9 @@ export interface TwitterAuthToken {
 export interface TwitterUserData {
   id: string
   username: string
-  description: string
-  url: string
-  entities: {
+  description?: string
+  url?: string
+  entities?: {
     url: {
       urls: [
         {

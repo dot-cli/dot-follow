@@ -10,7 +10,8 @@ enum Keys {
 
 export enum AuthKeys {
   TEST = 'test',
-  TWITTER = 'twitter'
+  TWITTER = 'twitter',
+  GITHUB = 'github'
 }
 
 const getData = async (): Promise<Record<string, any>> => {

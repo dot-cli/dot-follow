@@ -9,7 +9,7 @@ export const buildSocialLink = (title: string, username: string): Link => {
     'linkedin.com',
     'linkedin.com/in'
   )
-  return { href, title }
+  return { href, title, username }
 }
 
 export default class DevLinks {

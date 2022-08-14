@@ -2,7 +2,7 @@ import { expect, test } from '@oclif/test'
 import inquirer from 'inquirer'
 import * as sinon from 'sinon'
 
-import { keypress, question, choice } from 'lib/prompt'
+import { keypress, question, choice, confirm } from 'lib/prompt'
 
 describe('keypress', () => {
   test
@@ -34,5 +34,10 @@ describe('keypress', () => {
     const result = 'A'
     sinon.stub(inquirer, 'prompt').resolves({ result })
     expect(await choice({ choices: ['A', 'B'] })).to.equal(result)
+  })
+
+  test.it('confirm', async () => {
+    sinon.stub(inquirer, 'prompt').resolves({ confirm: true })
+    expect(await confirm()).to.equal(true)
   })
 })

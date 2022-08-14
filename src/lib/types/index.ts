@@ -19,9 +19,12 @@ export interface SocialUser {
 export interface GithubUser {
   login: string
   name?: string
+  company?: string
   bio?: string
   blog?: string
   twitter_username?: string // eslint-disable-line camelcase
+  followers?: number
+  following?: number
 }
 
 export interface TwitterUser {
@@ -40,5 +43,6 @@ export interface Site {
 export interface Link {
   href: string
   title: string
+  username?: string
   isSocialLink?: boolean
 }

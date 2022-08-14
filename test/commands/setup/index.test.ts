@@ -5,10 +5,12 @@ import * as sinon from 'sinon'
 import cmd from 'commands/setup'
 
 import * as config from 'lib/config'
+import * as github from 'lib/github'
 import * as prompt from 'lib/prompt'
 import { AUTH_PIN_URL } from 'lib/twitter'
 import * as url from 'lib/url'
 
+const GITHUB_TOKEN = 'github_token'
 const PIN = '1234567'
 
 describe('setup', () => {
@@ -16,6 +18,7 @@ describe('setup', () => {
     sinon.stub(prompt, 'keypress').resolves()
     sinon.stub(url, 'openUrl').resolves()
     sinon.stub(prompt, 'question').resolves(PIN)
+    sinon.stub(github, 'getAuthTokenByOAuth').resolves(GITHUB_TOKEN)
     sinon.stub(config, 'setAuth').resolves()
   })
 

@@ -51,4 +51,19 @@ export const choice = async ({
   return responses.result
 }
 
-export default { keypress, question, choice }
+export const confirm = async (
+  question = 'Are you sure?',
+  initial = 'Y'
+): Promise<boolean> => {
+  const response = await inquirer.prompt([
+    {
+      name: 'confirm',
+      type: 'confirm',
+      message: question,
+      default: initial
+    }
+  ])
+  return response.confirm
+}
+
+export default { keypress, question, choice, confirm }
