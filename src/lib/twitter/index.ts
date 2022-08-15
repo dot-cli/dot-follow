@@ -21,6 +21,11 @@ export const AUTH_REFRESH_TOKEN_URL =
 export const USER_FIELDS =
   'id,username,name,description,url,protected,verified,public_metrics,pinned_tweet_id,entities'
 
+export const TWITTER_ERRORS = {
+  NotFound: 'Not Found Error',
+  Forbidden: 'Forbidden'
+}
+
 const mapResponseToUser = (data: TwitterUserData): TwitterUser => {
   const { data: user, includes } = data
   const { description, url, entities } = user
@@ -146,9 +151,10 @@ export const getUser = async (
     const url = `https://api.twitter.com/2/users/by/username/${username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
     const response = await axios.get(url, { headers })
     if (response?.data?.errors) {
+      const knownErrors = new Set(Object.values(TWITTER_ERRORS))
       if (
-        response?.data?.errors.find(
-          (error: any) => error?.title === 'Not Found Error'
+        response?.data?.errors.find((error: any) =>
+          knownErrors.has(error?.title)
         )
       ) {
         return null

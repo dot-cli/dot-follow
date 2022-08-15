@@ -6,6 +6,7 @@ import * as config from 'lib/config'
 import {
   AUTH_REFRESH_TOKEN_URL,
   USER_FIELDS,
+  TWITTER_ERRORS,
   getAuthToken,
   getAuthUserId,
   getUser,
@@ -147,6 +148,24 @@ describe('twitter', () => {
   it('not found response', async () => {
     sinon.stub(axios, 'get').rejects({ response: { status: 404 } })
     expect(await getUser('not-a-twitter-user')).to.be.null
+  })
+
+  it('not found user', async () => {
+    sinon.stub(axios, 'get').resolves({
+      data: {
+        errors: [{ title: TWITTER_ERRORS.NotFound }]
+      }
+    })
+    expect(await getUser('not-found-user')).to.be.null
+  })
+
+  it('suspended user', async () => {
+    sinon.stub(axios, 'get').resolves({
+      data: {
+        errors: [{ title: TWITTER_ERRORS.Forbidden }]
+      }
+    })
+    expect(await getUser('suspended-user')).to.be.null
   })
 
   it('failed response', async () => {

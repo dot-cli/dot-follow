@@ -1,4 +1,5 @@
 import { Command } from '@oclif/core'
+import chalk from 'chalk'
 
 import { Sites } from 'lib/constants'
 import {
@@ -18,11 +19,41 @@ import {
   followUser as followTwitterUser
 } from 'lib/twitter'
 
-const log = (obj: Record<string, any>): void => {
+const TAB = '  '
+
+// From https://stackoverflow.com/a/51506718
+const wrap = (text: string, maxWidth: number): string =>
+  text.replace(
+    new RegExp(`(?![^\\n]{1,${maxWidth}}$)([^\\n]{1,${maxWidth}})\\s`, 'g'),
+    '$1\n'
+  )
+
+const colorifyURLs = (text: string): string => {
+  const urlRegex = /(https?:\/\/\S+)/g
+  return text.replace(urlRegex, (url) => {
+    return `${chalk.blue(url)}`
+  })
+}
+
+const log = (obj: Record<string, any>, longTextKeys: string[]): void => {
   for (const key in obj) {
     if (obj[key] || typeof obj[key] === 'boolean') {
       const keyName = `${key.slice(0, 1).toUpperCase()}${key.slice(1)}`
-      console.log(`\t${keyName}: ${obj[key]}`)
+      if (longTextKeys.includes(key)) {
+        console.log(`${TAB}${keyName}:`)
+        const text = wrap(obj[key], 100)
+        for (const line of text.split('\n')) {
+          console.log(
+            `${TAB}${TAB}${chalk.green.bold('│')} ${colorifyURLs(line)}`
+          )
+        }
+      } else {
+        console.log(
+          `${TAB}${keyName}: ${
+            typeof obj[key] === 'string' ? colorifyURLs(obj[key]) : obj[key]
+          }`
+        )
+      }
     }
   }
 }
@@ -81,20 +112,23 @@ export default class Setup extends Command {
         // Log dev links
         const parsedDevLinks = await parseDevLinks(devLinks)
         for (const link of parsedDevLinks) {
-          this.log(`${link.title}: ${link.href}`)
+          this.log(`${link.title}: ${colorifyURLs(link.href)}`)
 
           if (link.title === Sites.Github.title) {
             const githubUsers = await getGithubUsers(login)
             const { name, company, blog, bio, followers, following } =
               githubUsers[0]
-            log({
-              name,
-              company: resolveCompanyHandles(company),
-              blog,
-              bio,
-              followers,
-              following
-            })
+            log(
+              {
+                name,
+                company: resolveCompanyHandles(company),
+                website: blog,
+                followers,
+                following,
+                bio
+              },
+              ['bio']
+            )
           } else if (link.title === Sites.Twitter.title && link.username) {
             const {
               name,
@@ -105,17 +139,20 @@ export default class Setup extends Command {
               description,
               pinnedTweet
             } = (await getTwitterUser(link.username)) || {}
-            log({
-              name,
-              url,
-              followers: public_metrics?.followers_count,
-              following: public_metrics?.following_count,
-              tweetAndRetweets: public_metrics?.tweet_count,
-              protected: protectedFlag,
-              verified,
-              description,
-              pinnedTweet
-            })
+            log(
+              {
+                name,
+                url,
+                followers: public_metrics?.followers_count,
+                following: public_metrics?.following_count,
+                tweets: public_metrics?.tweet_count,
+                protected: protectedFlag,
+                verified,
+                description,
+                pinnedTweet
+              },
+              ['description', 'pinnedTweet']
+            )
           }
         }
 
