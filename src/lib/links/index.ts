@@ -60,9 +60,14 @@ export const getUserDevLinks = async (
     const user = await getTwitterUser(username)
     if (user) {
       links.push(buildSocialLink(Sites.Twitter.title, user.username))
-      const { url } = user
+      const { url, entities } = user
       if (url) {
         links.push({ href: url, title: Sites.Website.title })
+      }
+      for (const url of entities?.description?.urls || []) {
+        if (url?.expanded_url) {
+          links.push({ href: url?.expanded_url, title: 'unknown' })
+        }
       }
     }
   }
