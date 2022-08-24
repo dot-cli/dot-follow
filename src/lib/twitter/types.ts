@@ -19,3 +19,18 @@ export interface TwitterUserData {
     ]
   }
 }
+
+export interface FollowingUserIds {
+  followingUserIds: string[]
+  nextPageToken?: string
+}
+
+export interface Followers {
+  followers: TwitterUser[]
+  nextPageToken?: string
+}
+
+export interface TwitterPaginatedData {
+  data: any
+  meta: any
+}

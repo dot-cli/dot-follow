@@ -4,12 +4,15 @@ import * as sinon from 'sinon'
 
 import * as config from 'lib/config'
 import {
+  BASE_API_URL,
   AUTH_REFRESH_TOKEN_URL,
   USER_FIELDS,
   TWITTER_ERRORS,
   getAuthToken,
   getAuthUserId,
   getUser,
+  getFollowingUserIdsByUserId,
+  getFollowersByUserId,
   followUser
 } from 'lib/twitter'
 
@@ -106,7 +109,7 @@ describe('twitter', () => {
 
     expect(await getUser(mockData.username)).to.deep.equal(mockData)
 
-    const apiUrl = `https://api.twitter.com/2/users/by/username/${mockData.username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
+    const apiUrl = `${BASE_API_URL}/users/by/username/${mockData.username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
 
     expect(stub.calledWith(apiUrl)).to.be.true
   })
@@ -117,15 +120,74 @@ describe('twitter', () => {
 
     expect(await getAuthUserId()).to.deep.equal(mockData.data.id)
 
-    const apiUrl = 'https://api.twitter.com/2/users/me?user.fields=id'
+    const apiUrl = `${BASE_API_URL}/users/me?user.fields=id`
     expect(stub.calledWith(apiUrl)).to.be.true
+  })
+
+  it('get following user IDs', async () => {
+    const userId = '24870588'
+    const followingUserIds = ['11111111', '22222222']
+    const nextToken = 'testNextToken'
+    const firstResponse = {
+      data: [{ id: followingUserIds[0] }],
+      meta: { next_token: nextToken }
+    }
+    const secondResponse = {
+      data: [{ id: followingUserIds[1] }],
+      meta: {}
+    }
+    const stub = sinon
+      .stub(axios, 'get')
+      .onCall(0)
+      .resolves({ data: firstResponse })
+      .onCall(1)
+      .resolves({ data: secondResponse })
+
+    expect(await getFollowingUserIdsByUserId(userId)).to.deep.equal(
+      followingUserIds
+    )
+
+    const firstApiUrl = `${BASE_API_URL}/users/${userId}/following?user.fields=id&max_results=1000`
+    const secondApiUrl = firstApiUrl + `&pagination_token=${nextToken}`
+    expect(stub.calledWith(firstApiUrl) && stub.calledWith(secondApiUrl)).to.be
+      .true
+  })
+
+  it('get followers', async () => {
+    const userId = '24870588'
+    const followers = [
+      { id: '11111111', username: 'test' },
+      { id: '22222222', username: 'test2' }
+    ]
+    const nextToken = 'testNextToken'
+    const firstResponse = {
+      data: [followers[0]],
+      meta: { next_token: nextToken }
+    }
+    const secondResponse = {
+      data: [followers[1]],
+      meta: {}
+    }
+    const stub = sinon
+      .stub(axios, 'get')
+      .onCall(0)
+      .resolves({ data: firstResponse })
+      .onCall(1)
+      .resolves({ data: secondResponse })
+
+    expect(await getFollowersByUserId(userId)).to.deep.equal(followers)
+
+    const firstApiUrl = `${BASE_API_URL}/users/${userId}/followers?user.fields=${USER_FIELDS}&max_results=1000`
+    const secondApiUrl = firstApiUrl + `&pagination_token=${nextToken}`
+    expect(stub.calledWith(firstApiUrl) && stub.calledWith(secondApiUrl)).to.be
+      .true
   })
 
   it('follow user', async () => {
     const getStub = sinon.stub(axios, 'get')
     const me = { id: '24870588' }
 
-    let apiUrl = 'https://api.twitter.com/2/users/me?user.fields=id'
+    let apiUrl = `${BASE_API_URL}/users/me?user.fields=id`
     let mockData = { data: { id: me.id } }
     getStub.withArgs(apiUrl).resolves({ data: mockData })
 
@@ -133,14 +195,14 @@ describe('twitter', () => {
       id: '11111111',
       username: 'test'
     }
-    apiUrl = `https://api.twitter.com/2/users/by/username/${userToFollow.username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
+    apiUrl = `${BASE_API_URL}/users/by/username/${userToFollow.username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
     mockData = { data: { id: userToFollow.id } }
     getStub.withArgs(apiUrl).resolves({ data: mockData })
 
     const stub = sinon.stub(axios, 'post').resolves()
     await followUser(userToFollow.username)
 
-    apiUrl = `https://api.twitter.com/2/users/${me.id}/following`
+    apiUrl = `${BASE_API_URL}/users/${me.id}/following`
     expect(stub.calledWith(apiUrl, { target_user_id: userToFollow.id })).to.be
       .true
   })

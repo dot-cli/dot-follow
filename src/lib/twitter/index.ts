@@ -3,10 +3,13 @@ import axios from 'axios'
 import { AuthKeys, getAuth, setAuth } from 'lib/config'
 import type { TwitterUser } from 'lib/types'
 
-import type { TwitterAuthToken, TwitterUserData } from './types'
+import { getPaginatedResponse, mapResponseToUser } from './helper'
+import type { TwitterAuthToken, FollowingUserIds, Followers } from './types'
 
 const AUTH_URL_DEFAULT_PREFIX =
   'https://dot-follow-twitter-auth-production.up.railway.app/twitter'
+
+export const BASE_API_URL = 'https://api.twitter.com/2'
 
 export const AUTH_URL =
   process.env.TWITTER_AUTH_URL || `${AUTH_URL_DEFAULT_PREFIX}/auth`
@@ -24,39 +27,6 @@ export const USER_FIELDS =
 export const TWITTER_ERRORS = {
   NotFound: 'Not Found Error',
   Forbidden: 'Forbidden'
-}
-
-const mapResponseToUser = (data: TwitterUserData): TwitterUser => {
-  const { data: user, includes } = data
-  const { description, url, entities } = user
-  const { pinned_tweet_id: pinnedTweetId } = user
-
-  // Unfurl URL
-  const unfurledUrl = entities?.url?.urls?.find(
-    (u: { url: string }) => u.url === url
-  )?.expanded_url
-
-  // Unfurl description
-  let unfurledDescription = description
-  for (const url of entities?.description?.urls || []) {
-    if (url?.url && url?.expanded_url) {
-      unfurledDescription = unfurledDescription?.replace(
-        url.url,
-        url.expanded_url
-      )
-    }
-  }
-
-  const pinnedTweet = pinnedTweetId
-    ? includes?.tweets?.find((tweet) => tweet.id === pinnedTweetId)?.text
-    : undefined
-
-  return {
-    ...user,
-    url: unfurledUrl || url,
-    description: unfurledDescription,
-    pinnedTweet
-  }
 }
 
 export const getAuthURL = (): string => {
@@ -138,7 +108,7 @@ export const getAuthHeaders = async (): Promise<Record<string, string>> => {
 
 export const getAuthUserId = async (): Promise<string | null> => {
   const headers = await getAuthHeaders()
-  const url = 'https://api.twitter.com/2/users/me?user.fields=id'
+  const url = `${BASE_API_URL}/users/me?user.fields=id`
   const response = await axios.get(url, { headers })
   return response?.data?.data?.id
 }
@@ -148,7 +118,7 @@ export const getUser = async (
 ): Promise<TwitterUser | null> => {
   try {
     const headers = await getAuthHeaders()
-    const url = `https://api.twitter.com/2/users/by/username/${username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
+    const url = `${BASE_API_URL}/users/by/username/${username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
     const response = await axios.get(url, { headers })
     if (response?.data?.errors) {
       const knownErrors = new Set(Object.values(TWITTER_ERRORS))
@@ -170,6 +140,70 @@ export const getUser = async (
   }
 }
 
+const getFollowingUserIdsByUserIdAndNextToken = async (
+  userId: string,
+  nextToken?: string
+): Promise<FollowingUserIds> => {
+  const followingUserIds: string[] = []
+
+  const url = `${BASE_API_URL}/users/${userId}/following?user.fields=id&max_results=1000`
+  const headers = await getAuthHeaders()
+  const { data, meta } = await getPaginatedResponse(url, headers, nextToken)
+
+  followingUserIds.push(...data.map((user: TwitterUser) => user.id))
+  return { followingUserIds, nextPageToken: meta?.next_token }
+}
+
+export const getFollowingUserIdsByUserId = async (
+  userId: string
+): Promise<string[]> => {
+  const followingUserIds: string[] = []
+  let nextToken
+  /* eslint-disable no-await-in-loop */
+  do {
+    const followingUserIdsData: FollowingUserIds =
+      await getFollowingUserIdsByUserIdAndNextToken(userId, nextToken)
+    followingUserIds.push(...followingUserIdsData.followingUserIds)
+    nextToken = followingUserIdsData.nextPageToken
+  } while (nextToken)
+  /* eslint-enable no-await-in-loop */
+  return followingUserIds
+}
+
+const getFollowersByUserIdAndNextToken = async (
+  userId: string,
+  nextToken?: string
+): Promise<Followers> => {
+  const followers: TwitterUser[] = []
+
+  const url = `${BASE_API_URL}/users/${userId}/followers?user.fields=${USER_FIELDS}&max_results=1000`
+  const headers = await getAuthHeaders()
+  const { data, meta } = await getPaginatedResponse(url, headers, nextToken)
+
+  followers.push(
+    ...data.map((user: TwitterUser) => mapResponseToUser({ data: user }))
+  )
+  return { followers, nextPageToken: meta?.next_token }
+}
+
+export const getFollowersByUserId = async (
+  userId: string
+): Promise<TwitterUser[]> => {
+  const followers: TwitterUser[] = []
+  let nextToken
+  /* eslint-disable no-await-in-loop */
+  do {
+    const followersData: Followers = await getFollowersByUserIdAndNextToken(
+      userId,
+      nextToken
+    )
+    followers.push(...followersData.followers)
+    nextToken = followersData.nextPageToken
+  } while (nextToken)
+  /* eslint-enable no-await-in-loop */
+  return followers
+}
+
 export const followUser = async (username: string): Promise<void> => {
   const userId = await getAuthUserId()
   const userToFollow = await getUser(username)
@@ -177,7 +211,7 @@ export const followUser = async (username: string): Promise<void> => {
     return
   }
   const headers = await getAuthHeaders()
-  const url = `https://api.twitter.com/2/users/${userId}/following`
+  const url = `${BASE_API_URL}/users/${userId}/following`
   const data = { target_user_id: userToFollow.id }
   await axios.post(url, data, { headers })
 }

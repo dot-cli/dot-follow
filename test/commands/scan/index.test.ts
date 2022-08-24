@@ -71,6 +71,7 @@ describe('scan', () => {
       .stub(twitter, 'getUser')
       .withArgs(FOLLOWER.login)
       .resolves(FOLLOWER_TWITTER_PROFILE)
+    sinon.stub(twitter, 'getAuthUserId').resolves(null)
 
     sinon.stub(links, 'getUserDevLinks').resolves(LINKS)
     sinon.stub(github, 'followUser').resolves()

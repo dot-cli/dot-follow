@@ -5,6 +5,7 @@ import { Sites } from 'lib/constants'
 import {
   getUserProfile as getGithubUserProfile,
   getUsers as getGithubUsers,
+  getUsersThatExist as getGithubUsersThatExist,
   followUser as followGithubUser,
   resolveCompanyHandles
 } from 'lib/github'
@@ -16,6 +17,9 @@ import {
 import { confirm } from 'lib/prompt'
 import {
   getUser as getTwitterUser,
+  getAuthUserId as getTwitterAuthUserId,
+  getFollowingUserIdsByUserId as getTwitterFollowingUserIdsByUserId,
+  getFollowersByUserId as getTwitterFollowersByUserId,
   followUser as followTwitterUser
 } from 'lib/twitter'
 
@@ -74,16 +78,39 @@ export default class Setup extends Command {
   }
 
   async run(): Promise<void> {
-    const { login } = await getGithubUserProfile()
+    const githubUsersToFollow = []
 
+    // Find github users to follow from Twitter users
+    const twitterUserId = await getTwitterAuthUserId()
+    if (twitterUserId) {
+      const twitterFollowingUserIds = await getTwitterFollowingUserIdsByUserId(
+        twitterUserId
+      )
+      const twitterFollowers = await getTwitterFollowersByUserId(twitterUserId)
+      const twitterUsersToFollow = twitterFollowers.filter(
+        (twitterFollower) =>
+          !twitterFollowingUserIds.includes(twitterFollower.id)
+      )
+      const githubUsersOnTwitterToFollow = await getGithubUsersThatExist(
+        twitterUsersToFollow.map(
+          (twitterUserToFollow) => twitterUserToFollow.username
+        )
+      )
+      githubUsersToFollow.push(...githubUsersOnTwitterToFollow)
+    }
+
+    // Find github users to follow on Github
+    const { login } = await getGithubUserProfile()
     const githubFollowers = await getGithubUsers(`${login}/followers`)
     const githubFollowing = await getGithubUsers(`${login}/following`)
     const githubFollowerLogins = githubFollowers.map((user) => user.login)
     const githubFollowingLogins = new Set(
       githubFollowing.map((user) => user.login)
     )
-    const githubUsersToFollow = githubFollowerLogins.filter(
-      (login) => !githubFollowingLogins.has(login)
+    githubUsersToFollow.push(
+      ...githubFollowerLogins.filter(
+        (login) => !githubFollowingLogins.has(login)
+      )
     )
 
     if (githubUsersToFollow.length > 0) {

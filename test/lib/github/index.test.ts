@@ -1,10 +1,17 @@
+import * as graphql from '@octokit/graphql'
 import axios from 'axios'
 import { expect } from 'chai'
 // @ts-ignore
 import Github from 'github-api'
 import * as sinon from 'sinon'
 
-import { getUserProfile, getUser, followUser, getReadme } from 'lib/github'
+import {
+  getUserProfile,
+  getUser,
+  getUsersThatExist,
+  followUser,
+  getReadme
+} from 'lib/github'
 
 describe('github', () => {
   afterEach(() => sinon.restore())
@@ -38,6 +45,44 @@ describe('github', () => {
 
     const apiUrl = `https://api.github.com/users/${username}`
     expect(stub.calledWith(apiUrl)).to.be.true
+  })
+
+  it('get users that exist', async () => {
+    const users = ['user1', 'user2']
+    sinon.stub(graphql, 'graphql').resolves({
+      user1: { login: 'user1', name: 'Number 1' },
+      user2: { login: 'user2' }
+    })
+    const usersThatExist = await getUsersThatExist(users)
+    // user2 not included as it has no name
+    expect(usersThatExist).to.eql(['user1'])
+  })
+
+  it('get users that exist where some do not exist', async () => {
+    const users = ['user1', 'notfound']
+
+    const data = [{ login: 'user1', name: 'Number 1' }, null]
+    sinon.stub(graphql, 'graphql').throws(
+      new graphql.GraphqlResponseError(
+        { method: 'GET', url: '' },
+        {},
+        {
+          data,
+          errors: [
+            {
+              type: '',
+              message: '',
+              path: [''],
+              extensions: {},
+              locations: [{ line: 1, column: 1 }]
+            }
+          ]
+        }
+      )
+    )
+
+    const usersThatExist = await getUsersThatExist(users)
+    expect(usersThatExist).to.eql(['user1'])
   })
 
   it('follow user', async () => {

@@ -1,3 +1,4 @@
+import { graphql, GraphqlResponseError } from '@octokit/graphql'
 import axios from 'axios'
 // @ts-ignore
 import ghauth from 'ghauth'
@@ -73,6 +74,37 @@ export const getUser = async (username: string): Promise<GithubUser | null> => {
     }
     throw error
   }
+}
+
+export const getUsersThatExist = async (
+  usernames: string[]
+): Promise<string[]> => {
+  let users: GithubUser[] = []
+  try {
+    const headers = await getAuthHeaders()
+
+    let query = '{'
+    for (const [index, user] of usernames.entries()) {
+      const login = user.replace(/_/g, '')
+      query += `\nuser${index}: user(login: "${login}") { login name }`
+    }
+    query += '}'
+
+    const data = await graphql(query, { headers })
+    users = Object.values(data as Record<string, GithubUser>)
+  } catch (error) {
+    // GraphqlResponseError happens when some users aren't found,
+    // but the users found are included in error.data
+    if (error instanceof GraphqlResponseError && error.data) {
+      users = Object.values(error.data)
+    } else {
+      throw error
+    }
+  }
+  // Only return users who have a name
+  return users
+    .filter((user) => user?.login && user?.name)
+    .map((user) => user.login)
 }
 
 export const getUsersByPage = async (

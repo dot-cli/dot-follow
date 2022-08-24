@@ -30,7 +30,7 @@ export interface GithubUser {
 export interface TwitterUser {
   id: string
   username: string
-  name: string
+  name?: string
   description?: string
   url?: string
   protected?: boolean
