@@ -78,7 +78,7 @@ export default class Setup extends Command {
   }
 
   async run(): Promise<void> {
-    const githubUsersToFollow = []
+    const githubUsersToFollow: string[] = []
 
     // Find github users to follow from Twitter users
     const twitterUserId = await getTwitterAuthUserId()
@@ -109,7 +109,9 @@ export default class Setup extends Command {
     )
     githubUsersToFollow.push(
       ...githubFollowerLogins.filter(
-        (login) => !githubFollowingLogins.has(login)
+        (login) =>
+          !githubFollowingLogins.has(login) &&
+          !githubUsersToFollow.includes(login)
       )
     )
 
