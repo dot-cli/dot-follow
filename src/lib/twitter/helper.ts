@@ -3,14 +3,21 @@ import axios from 'axios'
 import type { TwitterUser } from 'lib/types'
 import { removeEmptyEntries } from 'lib/utils/obj'
 
-import type { TwitterUserData, TwitterPaginatedData } from './types'
+import type {
+  TwitterUserData,
+  TwitterPaginatedData,
+  PaginatedUsers
+} from './types'
 
 export const getPaginatedResponse = async (
   url: string,
   headers: Record<string, string>,
   nextToken?: string
 ): Promise<TwitterPaginatedData> => {
-  const paginationParam = nextToken ? `&pagination_token=${nextToken}` : ''
+  const urlSymbol = url.indexOf('?') > 0 ? '&' : '?'
+  const paginationParam = nextToken
+    ? `${urlSymbol}pagination_token=${nextToken}`
+    : ''
   const response = await axios.get(`${url}${paginationParam}`, { headers })
   return response.data
 }
@@ -46,4 +53,19 @@ export const mapResponseToUser = (data: TwitterUserData): TwitterUser => {
     description: unfurledDescription,
     pinnedTweet
   }) as TwitterUser
+}
+
+export const getPaginatedUsers = async (
+  url: string,
+  headers: Record<string, string>,
+  nextToken?: string
+): Promise<PaginatedUsers> => {
+  const users: TwitterUser[] = []
+
+  const { data, meta } = await getPaginatedResponse(url, headers, nextToken)
+
+  users.push(
+    ...data.map((user: TwitterUser) => mapResponseToUser({ data: user }))
+  )
+  return { users, nextPageToken: meta?.next_token }
 }

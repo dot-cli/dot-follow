@@ -3,6 +3,7 @@ import { expect } from 'chai'
 import * as sinon from 'sinon'
 
 import * as config from 'lib/config'
+import * as twitter from 'lib/twitter'
 import {
   BASE_API_URL,
   AUTH_REFRESH_TOKEN_URL,
@@ -12,8 +13,16 @@ import {
   getAuthUserId,
   getUser,
   getFollowingUserIdsByUserId,
+  getFollowingByUserId,
   getFollowersByUserId,
-  followUser
+  followUser,
+  getLists,
+  pinList,
+  getOrCreateList,
+  createList,
+  getListMembers,
+  addUsersToList,
+  addUsersToListByName
 } from 'lib/twitter'
 
 const ONE_MIN = 60 * 1000
@@ -147,7 +156,37 @@ describe('twitter', () => {
       followingUserIds
     )
 
-    const firstApiUrl = `${BASE_API_URL}/users/${userId}/following?user.fields=id&max_results=1000`
+    const firstApiUrl = `${BASE_API_URL}/users/${userId}/following?user.fields=id,username&max_results=1000`
+    const secondApiUrl = firstApiUrl + `&pagination_token=${nextToken}`
+    expect(stub.calledWith(firstApiUrl) && stub.calledWith(secondApiUrl)).to.be
+      .true
+  })
+
+  it('get following', async () => {
+    const userId = '24870588'
+    const following = [
+      { id: '11111111', username: 'test' },
+      { id: '22222222', username: 'test2' }
+    ]
+    const nextToken = 'testNextToken'
+    const firstResponse = {
+      data: [following[0]],
+      meta: { next_token: nextToken }
+    }
+    const secondResponse = {
+      data: [following[1]],
+      meta: {}
+    }
+    const stub = sinon
+      .stub(axios, 'get')
+      .onCall(0)
+      .resolves({ data: firstResponse })
+      .onCall(1)
+      .resolves({ data: secondResponse })
+
+    expect(await getFollowingByUserId(userId)).to.deep.equal(following)
+
+    const firstApiUrl = `${BASE_API_URL}/users/${userId}/following?user.fields=${USER_FIELDS}&max_results=1000`
     const secondApiUrl = firstApiUrl + `&pagination_token=${nextToken}`
     expect(stub.calledWith(firstApiUrl) && stub.calledWith(secondApiUrl)).to.be
       .true
@@ -205,6 +244,151 @@ describe('twitter', () => {
     apiUrl = `${BASE_API_URL}/users/${me.id}/following`
     expect(stub.calledWith(apiUrl, { target_user_id: userToFollow.id })).to.be
       .true
+  })
+
+  it('get lists', async () => {
+    const me = { id: '24870588' }
+    const lists = [
+      { id: '11111111', name: 'test' },
+      { id: '22222222', name: 'test2' }
+    ]
+    const nextToken = 'testNextToken'
+    const authResponse = { data: { id: me.id } }
+    const firstResponse = {
+      data: [lists[0]],
+      meta: { next_token: nextToken }
+    }
+    const secondResponse = {
+      data: [lists[1]],
+      meta: {}
+    }
+    const stub = sinon
+      .stub(axios, 'get')
+      .onCall(0)
+      .resolves({ data: authResponse })
+      .onCall(1)
+      .resolves({ data: firstResponse })
+      .onCall(2)
+      .resolves({ data: secondResponse })
+
+    expect(await getLists()).to.deep.equal(lists)
+
+    const firstApiUrl = `${BASE_API_URL}/users/${me.id}/owned_lists`
+    const secondApiUrl = firstApiUrl + `?pagination_token=${nextToken}`
+    expect(stub.calledWith(firstApiUrl) && stub.calledWith(secondApiUrl)).to.be
+      .true
+  })
+
+  it('get list members', async () => {
+    const listId = '11111111'
+    const members = [
+      { id: '11111111', username: 'test' },
+      { id: '22222222', username: 'test2' }
+    ]
+    const nextToken = 'testNextToken'
+    const firstResponse = {
+      data: [members[0]],
+      meta: { next_token: nextToken }
+    }
+    const secondResponse = {
+      data: [members[1]],
+      meta: {}
+    }
+    const stub = sinon
+      .stub(axios, 'get')
+      .onCall(0)
+      .resolves({ data: firstResponse })
+      .onCall(1)
+      .resolves({ data: secondResponse })
+
+    expect(await getListMembers(listId)).to.deep.equal(members)
+
+    const firstApiUrl = `${BASE_API_URL}/lists/${listId}/members`
+    const secondApiUrl = firstApiUrl + `?pagination_token=${nextToken}`
+    expect(stub.calledWith(firstApiUrl) && stub.calledWith(secondApiUrl)).to.be
+      .true
+  })
+
+  it('pin list', async () => {
+    const getStub = sinon.stub(axios, 'get')
+    const me = { id: '24870588' }
+
+    let apiUrl = `${BASE_API_URL}/users/me?user.fields=id`
+    let mockData = { data: { id: me.id } }
+    getStub.withArgs(apiUrl).resolves({ data: mockData })
+
+    const listToPin = {
+      id: '11111111',
+      name: 'Test'
+    }
+    apiUrl = `${BASE_API_URL}/users/${me.id}/pinned_lists`
+    mockData = { data: listToPin }
+
+    const stub = sinon.stub(axios, 'post').resolves({ data: mockData })
+    await pinList(listToPin.id)
+
+    apiUrl = `${BASE_API_URL}/users/${me.id}/pinned_lists`
+    expect(stub.calledWith(apiUrl, { list_id: listToPin.id })).to.be.true
+  })
+
+  it('get or create list', async () => {
+    const list = { id: '44444444', name: 'NewList' }
+    sinon.stub(twitter, 'getLists').resolves([{ id: '33333333', name: 'Test' }])
+    sinon.stub(twitter, 'createList').resolves(list)
+    expect(await getOrCreateList(list.name)).to.be.equal(list)
+  })
+
+  it('create list', async () => {
+    const getStub = sinon.stub(axios, 'get')
+    const me = { id: '24870588' }
+
+    let apiUrl = `${BASE_API_URL}/users/me?user.fields=id`
+    let mockData = { data: { id: me.id } }
+    getStub.withArgs(apiUrl).resolves({ data: mockData })
+
+    const listToCreate = { name: 'Test', private: true }
+    apiUrl = `${BASE_API_URL}/lists`
+    mockData = { data: { id: '11111111', ...listToCreate } }
+
+    const stub = sinon.stub(axios, 'post').resolves({ data: mockData })
+    await createList(listToCreate.name, false)
+
+    apiUrl = `${BASE_API_URL}/lists`
+    expect(stub.calledWith(apiUrl, listToCreate)).to.be.true
+  })
+
+  it('add users to list', async () => {
+    const stub = sinon.stub(axios, 'post').resolves()
+
+    const listId = '33333333'
+    const users = [
+      { id: '11111111', username: 'test1' },
+      { id: '22222222', username: 'test2' }
+    ]
+    await addUsersToList(listId, users, 0)
+
+    const apiUrl = `${BASE_API_URL}/lists/${listId}/members`
+    expect(
+      stub.calledWith(apiUrl, { user_id: users[0].id }) &&
+        stub.calledWith(apiUrl, { user_id: users[1].id })
+    ).to.be.true
+  })
+
+  it('add users to list by name', async () => {
+    const list = { id: '33333333' }
+    const users = [
+      { id: '11111111', username: 'test1' },
+      { id: '22222222', username: 'test2' }
+    ]
+    sinon.stub(twitter, 'getOrCreateList').resolves(list)
+    sinon
+      .stub(twitter, 'getListMembers')
+      .resolves([{ id: '22222222', username: 'test2' }])
+    const stub = sinon.stub(twitter, 'addUsersToList').resolves()
+
+    await addUsersToListByName('Test', users, 0)
+
+    expect(stub.calledWith(list.id, [users[0]], 0)).to.be.true
   })
 
   it('not found response', async () => {

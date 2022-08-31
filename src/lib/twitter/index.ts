@@ -1,10 +1,20 @@
 import axios from 'axios'
+import { setTimeout } from 'timers/promises'
 
 import { AuthKeys, getAuth, setAuth } from 'lib/config'
 import type { TwitterUser } from 'lib/types'
 
-import { getPaginatedResponse, mapResponseToUser } from './helper'
-import type { TwitterAuthToken, FollowingUserIds, Followers } from './types'
+import {
+  getPaginatedResponse,
+  mapResponseToUser,
+  getPaginatedUsers
+} from './helper'
+import type {
+  TwitterAuthToken,
+  PaginatedUsers,
+  PaginatedLists,
+  TwitterList
+} from './types'
 
 const AUTH_URL_DEFAULT_PREFIX =
   'https://dot-follow-twitter-auth-production.up.railway.app/twitter'
@@ -140,68 +150,46 @@ export const getUser = async (
   }
 }
 
-const getFollowingUserIdsByUserIdAndNextToken = async (
-  userId: string,
-  nextToken?: string
-): Promise<FollowingUserIds> => {
-  const followingUserIds: string[] = []
-
-  const url = `${BASE_API_URL}/users/${userId}/following?user.fields=id&max_results=1000`
+export const getPaginatedUsersByUrl = async (
+  url: string
+): Promise<TwitterUser[]> => {
   const headers = await getAuthHeaders()
-  const { data, meta } = await getPaginatedResponse(url, headers, nextToken)
-
-  followingUserIds.push(...data.map((user: TwitterUser) => user.id))
-  return { followingUserIds, nextPageToken: meta?.next_token }
+  const users: TwitterUser[] = []
+  let nextToken
+  /* eslint-disable no-await-in-loop */
+  do {
+    const data: PaginatedUsers = await getPaginatedUsers(
+      url,
+      headers,
+      nextToken
+    )
+    users.push(...data.users)
+    nextToken = data.nextPageToken
+  } while (nextToken)
+  /* eslint-enable no-await-in-loop */
+  return users
 }
 
 export const getFollowingUserIdsByUserId = async (
   userId: string
 ): Promise<string[]> => {
-  const followingUserIds: string[] = []
-  let nextToken
-  /* eslint-disable no-await-in-loop */
-  do {
-    const followingUserIdsData: FollowingUserIds =
-      await getFollowingUserIdsByUserIdAndNextToken(userId, nextToken)
-    followingUserIds.push(...followingUserIdsData.followingUserIds)
-    nextToken = followingUserIdsData.nextPageToken
-  } while (nextToken)
-  /* eslint-enable no-await-in-loop */
-  return followingUserIds
+  const url = `${BASE_API_URL}/users/${userId}/following?user.fields=id,username&max_results=1000`
+  const users = await getPaginatedUsersByUrl(url)
+  return users.map((user) => user.id)
 }
 
-const getFollowersByUserIdAndNextToken = async (
-  userId: string,
-  nextToken?: string
-): Promise<Followers> => {
-  const followers: TwitterUser[] = []
-
-  const url = `${BASE_API_URL}/users/${userId}/followers?user.fields=${USER_FIELDS}&max_results=1000`
-  const headers = await getAuthHeaders()
-  const { data, meta } = await getPaginatedResponse(url, headers, nextToken)
-
-  followers.push(
-    ...data.map((user: TwitterUser) => mapResponseToUser({ data: user }))
-  )
-  return { followers, nextPageToken: meta?.next_token }
+export const getFollowingByUserId = async (
+  userId: string
+): Promise<TwitterUser[]> => {
+  const url = `${BASE_API_URL}/users/${userId}/following?user.fields=${USER_FIELDS}&max_results=1000`
+  return getPaginatedUsersByUrl(url)
 }
 
 export const getFollowersByUserId = async (
   userId: string
 ): Promise<TwitterUser[]> => {
-  const followers: TwitterUser[] = []
-  let nextToken
-  /* eslint-disable no-await-in-loop */
-  do {
-    const followersData: Followers = await getFollowersByUserIdAndNextToken(
-      userId,
-      nextToken
-    )
-    followers.push(...followersData.followers)
-    nextToken = followersData.nextPageToken
-  } while (nextToken)
-  /* eslint-enable no-await-in-loop */
-  return followers
+  const url = `${BASE_API_URL}/users/${userId}/followers?user.fields=${USER_FIELDS}&max_results=1000`
+  return getPaginatedUsersByUrl(url)
 }
 
 export const followUser = async (username: string): Promise<void> => {
@@ -214,4 +202,115 @@ export const followUser = async (username: string): Promise<void> => {
   const url = `${BASE_API_URL}/users/${userId}/following`
   const data = { target_user_id: userToFollow.id }
   await axios.post(url, data, { headers })
+}
+
+const getListsByNextToken = async (
+  userId: string,
+  headers: Record<string, string>,
+  nextToken?: string
+): Promise<PaginatedLists> => {
+  const lists: TwitterList[] = []
+
+  const url = `${BASE_API_URL}/users/${userId}/owned_lists`
+  const { data, meta } = await getPaginatedResponse(url, headers, nextToken)
+
+  lists.push(...data)
+  return { lists, nextPageToken: meta?.next_token }
+}
+
+export const getLists = async (): Promise<TwitterList[]> => {
+  const userId = await getAuthUserId()
+  const headers = await getAuthHeaders()
+  const lists: TwitterList[] = []
+  if (!userId) {
+    return lists
+  }
+  let nextToken
+  /* eslint-disable no-await-in-loop */
+  do {
+    const data: PaginatedLists = await getListsByNextToken(
+      userId,
+      headers,
+      nextToken
+    )
+    lists.push(...data.lists)
+    nextToken = data.nextPageToken
+  } while (nextToken)
+  /* eslint-enable no-await-in-loop */
+  return lists
+}
+
+export const getListMembers = async (
+  listId: string
+): Promise<TwitterUser[]> => {
+  const url = `${BASE_API_URL}/lists/${listId}/members`
+  return getPaginatedUsersByUrl(url)
+}
+
+export const pinList = async (listId: string): Promise<void> => {
+  const userId = await getAuthUserId()
+  const headers = await getAuthHeaders()
+  const url = `${BASE_API_URL}/users/${userId}/pinned_lists`
+  const data = { list_id: listId }
+  await axios.post(url, data, { headers })
+}
+
+export const createList = async (
+  name: string,
+  pinIt = true
+): Promise<TwitterList> => {
+  const headers = await getAuthHeaders()
+  const url = `${BASE_API_URL}/lists`
+  const data = { name, private: true }
+  const response = await axios.post(url, data, { headers })
+  if (!response?.data?.data) {
+    throw new Error(`Failed to create ${name} Twitter list`)
+  }
+  if (pinIt) {
+    await pinList(response.data.data.id)
+  }
+  return response.data.data
+}
+
+export const getOrCreateList = async (name: string): Promise<TwitterList> => {
+  const lists = await getLists()
+  const list = lists.find((item) => item.name === name)
+  if (list) {
+    return list
+  }
+  return createList(name)
+}
+
+// Due to rate limits, only one member will be added every 5 seconds
+export const addUsersToList = async (
+  listId: string,
+  users: TwitterUser[],
+  delayBetweenRequests = 5000
+): Promise<void> => {
+  const headers = await getAuthHeaders()
+  const url = `${BASE_API_URL}/lists/${listId}/members`
+  /* eslint-disable no-await-in-loop */
+  for (const user of users) {
+    const data = { user_id: user.id }
+    await axios.post(url, data, { headers })
+    await setTimeout(delayBetweenRequests)
+  }
+  /* eslint-enable no-await-in-loop */
+}
+
+export const addUsersToListByName = async (
+  listName: string,
+  users: TwitterUser[],
+  delayBetweenRequests = 5000
+): Promise<TwitterList> => {
+  const list = await getOrCreateList(listName)
+
+  // Get users in Devs list & filter them out from users to be added
+  const usersInList = await getListMembers(list.id)
+  const usernamesInList = new Set(usersInList.map((user) => user.username))
+  const usersToAdd = users.filter((user) => !usernamesInList.has(user.username))
+
+  await addUsersToList(list.id, usersToAdd, delayBetweenRequests)
+
+  return list
 }

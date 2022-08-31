@@ -62,7 +62,7 @@ const log = (obj: Record<string, any>, longTextKeys: string[]): void => {
   }
 }
 
-export default class Setup extends Command {
+export default class Scan extends Command {
   static description = 'Scan'
 
   static examples = ['$ oex scan']
