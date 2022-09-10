@@ -5,7 +5,7 @@ import ghauth from 'ghauth'
 // @ts-ignore
 import Github from 'github-api'
 
-import { AuthKeys, getAuth, setAuth } from 'lib/config'
+import { AuthKey, getAuth, setAuth } from 'lib/config'
 import type { GithubUser } from 'lib/types'
 
 import type { GithubAuthToken } from './types'
@@ -23,7 +23,7 @@ export const getAuthTokenByOAuth = async (): Promise<string> => {
 
 export const setupAuthToken = async (): Promise<void> => {
   const token = await getAuthTokenByOAuth()
-  setAuth(AuthKeys.GITHUB, token)
+  setAuth(AuthKey.GITHUB, token)
 }
 
 export const getAuthToken = async (): Promise<string | null> => {
@@ -31,7 +31,7 @@ export const getAuthToken = async (): Promise<string | null> => {
     return process.env.GITHUB_AUTH_TOKEN
   }
   const githubAuthToken = (await getAuth(
-    AuthKeys.GITHUB
+    AuthKey.GITHUB
   )) as GithubAuthToken | null
   if (!githubAuthToken) {
     return null

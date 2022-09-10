@@ -1,6 +1,15 @@
 import { expect } from 'chai'
 
-import { getValue, setValue, AuthKeys, getAuth, setAuth } from 'lib/config'
+import {
+  getValue,
+  setValue,
+  AuthKey,
+  getAuth,
+  setAuth,
+  FollowingKey,
+  getFollowing,
+  setFollowing
+} from 'lib/config'
 
 describe('config', () => {
   it('get & set config value', async () => {
@@ -12,7 +21,18 @@ describe('config', () => {
 
   it('get & set config auth value', async () => {
     const testAuthValue = { token: 'test-token' }
-    await setAuth(AuthKeys.TEST, testAuthValue)
-    expect(await getAuth(AuthKeys.TEST)).to.deep.equal(testAuthValue)
+    await setAuth(AuthKey.TEST, testAuthValue)
+    expect(await getAuth(AuthKey.TEST)).to.deep.equal(testAuthValue)
+  })
+
+  it('get & set config following value', async () => {
+    const testFollowingValue = {
+      following: ['following1', 'following2'],
+      evalTimestamp: Date.now()
+    }
+    await setFollowing(FollowingKey.TEST, testFollowingValue)
+    expect(await getFollowing(FollowingKey.TEST)).to.deep.equal(
+      testFollowingValue
+    )
   })
 })

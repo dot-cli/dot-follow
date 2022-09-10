@@ -64,8 +64,10 @@ export const getPaginatedUsers = async (
 
   const { data, meta } = await getPaginatedResponse(url, headers, nextToken)
 
-  users.push(
-    ...data.map((user: TwitterUser) => mapResponseToUser({ data: user }))
-  )
+  if (data?.length > 0) {
+    users.push(
+      ...data.map((user: TwitterUser) => mapResponseToUser({ data: user }))
+    )
+  }
   return { users, nextPageToken: meta?.next_token }
 }

@@ -1,5 +1,6 @@
 import { Command } from '@oclif/core'
 
+import { handleError } from 'lib/command'
 import { setupAuthToken as setupGithubAuthToken } from 'lib/github'
 import { keypress, question } from 'lib/prompt'
 import { getAuthURL, getAuthTokenByPin, saveAuthToken } from 'lib/twitter'
@@ -11,13 +12,7 @@ export default class Setup extends Command {
   static examples = ['$ oex setup']
 
   async catch(error: Error): Promise<void> {
-    if (error?.message) {
-      // TODO Log errors in red
-      this.log(`Error: ${error.message}`)
-    }
-    // TODO Only do console.error when verbose is true & is supported?
-    console.error(error)
-    throw error
+    handleError(error)
   }
 
   async run(): Promise<void> {

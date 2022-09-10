@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { setTimeout } from 'timers/promises'
 
-import { AuthKeys, getAuth, setAuth } from 'lib/config'
+import { AuthKey, getAuth, setAuth } from 'lib/config'
 import type { TwitterUser } from 'lib/types'
 
 import {
@@ -70,7 +70,7 @@ export const refreshAuthToken = async (
 }
 
 export const saveAuthToken = async (token: TwitterAuthToken): Promise<void> => {
-  setAuth(AuthKeys.TWITTER, token)
+  setAuth(AuthKey.TWITTER, token)
 }
 
 export const refreshAndSaveAuthToken = async (
@@ -78,7 +78,7 @@ export const refreshAndSaveAuthToken = async (
 ): Promise<TwitterAuthToken | null> => {
   const updatedToken = await refreshAuthToken(token?.refresh_token)
   if (updatedToken) {
-    setAuth(AuthKeys.TWITTER, updatedToken)
+    setAuth(AuthKey.TWITTER, updatedToken)
   }
   return updatedToken
 }
@@ -97,7 +97,7 @@ export const getAuthToken = async (): Promise<string | null> => {
     return process.env.TWITTER_AUTH_TOKEN
   }
   let twitterAuthToken = (await getAuth(
-    AuthKeys.TWITTER
+    AuthKey.TWITTER
   )) as TwitterAuthToken | null
   if (hasAuthTokenExpired(twitterAuthToken)) {
     twitterAuthToken = await refreshAndSaveAuthToken(twitterAuthToken)
@@ -116,11 +116,18 @@ export const getAuthHeaders = async (): Promise<Record<string, string>> => {
   return { Authorization: `Bearer ${token}` }
 }
 
-export const getAuthUserId = async (): Promise<string | null> => {
+export const getAuthUser = async (
+  userFields = USER_FIELDS
+): Promise<TwitterUser | null> => {
   const headers = await getAuthHeaders()
-  const url = `${BASE_API_URL}/users/me?user.fields=id`
+  const url = `${BASE_API_URL}/users/me?user.fields=${userFields}`
   const response = await axios.get(url, { headers })
-  return response?.data?.data?.id
+  return mapResponseToUser(response?.data)
+}
+
+export const getAuthUserId = async (): Promise<string | undefined> => {
+  const user = await getAuthUser('id')
+  return user?.id
 }
 
 export const getUser = async (
@@ -151,7 +158,8 @@ export const getUser = async (
 }
 
 export const getPaginatedUsersByUrl = async (
-  url: string
+  url: string,
+  maxResults?: number | undefined
 ): Promise<TwitterUser[]> => {
   const headers = await getAuthHeaders()
   const users: TwitterUser[] = []
@@ -165,24 +173,32 @@ export const getPaginatedUsersByUrl = async (
     )
     users.push(...data.users)
     nextToken = data.nextPageToken
-  } while (nextToken)
+    /* eslint-disable no-unmodified-loop-condition */
+  } while (nextToken && (!maxResults || users.length < maxResults))
   /* eslint-enable no-await-in-loop */
-  return users
+
+  return maxResults && users.length > maxResults
+    ? users.slice(0, maxResults)
+    : users
 }
 
 export const getFollowingUserIdsByUserId = async (
-  userId: string
+  userId: string,
+  maxResults?: number | undefined
 ): Promise<string[]> => {
-  const url = `${BASE_API_URL}/users/${userId}/following?user.fields=id,username&max_results=1000`
-  const users = await getPaginatedUsersByUrl(url)
+  const maxResultsParam = maxResults && maxResults < 1000 ? maxResults : '1000'
+  const url = `${BASE_API_URL}/users/${userId}/following?user.fields=id,username&max_results=${maxResultsParam}`
+  const users = await getPaginatedUsersByUrl(url, maxResults)
   return users.map((user) => user.id)
 }
 
 export const getFollowingByUserId = async (
-  userId: string
+  userId: string,
+  maxResults?: number | undefined
 ): Promise<TwitterUser[]> => {
-  const url = `${BASE_API_URL}/users/${userId}/following?user.fields=${USER_FIELDS}&max_results=1000`
-  return getPaginatedUsersByUrl(url)
+  const maxResultsParam = maxResults && maxResults < 1000 ? maxResults : '1000'
+  const url = `${BASE_API_URL}/users/${userId}/following?user.fields=${USER_FIELDS}&max_results=${maxResultsParam}`
+  return getPaginatedUsersByUrl(url, maxResults)
 }
 
 export const getFollowersByUserId = async (

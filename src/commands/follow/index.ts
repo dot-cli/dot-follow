@@ -1,5 +1,6 @@
 import { Command } from '@oclif/core'
 
+import { handleError } from 'lib/command'
 import { Sites } from 'lib/constants'
 import { getUsers as getGithubUsers } from 'lib/github'
 import { getUserDevLinks, parseDevLinks } from 'lib/links'
@@ -18,13 +19,7 @@ export default class Follow extends Command {
   ]
 
   async catch(error: Error): Promise<void> {
-    if (error?.message) {
-      // TODO Log errors in red
-      this.log(`Error: ${error.message}`)
-    }
-    // TODO Only do console.error when verbose is true & is supported?
-    console.error(error)
-    throw error
+    handleError(error)
   }
 
   async run(): Promise<void> {

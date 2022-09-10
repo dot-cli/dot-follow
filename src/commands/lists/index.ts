@@ -1,5 +1,6 @@
 import { Command } from '@oclif/core'
 
+import { handleError } from 'lib/command'
 import { getUsersThatExist as getGithubUsersThatExist } from 'lib/github'
 import {
   getAuthUserId as getTwitterAuthUserId,
@@ -13,13 +14,7 @@ export default class Lists extends Command {
   static examples = ['$ oex lists']
 
   async catch(error: Error): Promise<void> {
-    if (error?.message) {
-      // TODO Log errors in red
-      this.log(`Error: ${error.message}`)
-    }
-    // TODO Only do console.error when verbose is true & is supported?
-    console.error(error)
-    throw error
+    handleError(error)
   }
 
   async run(): Promise<void> {
