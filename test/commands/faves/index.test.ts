@@ -111,7 +111,6 @@ describe('faves', () => {
     expect(ctx.stdout).to.contain(
       'Found no new Twitter users that test1 follows'
     )
-    expect(ctx.stdout).to.contain('Done')
   })
 
   test.stdout().it('Found new Twitter users to follow', async (ctx) => {
@@ -134,7 +133,6 @@ describe('faves', () => {
     expect(ctx.stdout).to.contain(
       'Checking Twitter users who are also developers'
     )
-    expect(ctx.stdout).to.contain('Done')
 
     expect(logAndPromptFollowStub.calledWith([TWITTER_USER_TEST4.username])).to
       .be.true

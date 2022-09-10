@@ -1,11 +1,15 @@
 import chalk from 'chalk'
 
+import { FollowingKey, getFollowing, setFollowing } from 'lib/config'
 import { Sites } from 'lib/constants'
+import { getFave, setFave, getFaveUsernames } from 'lib/faves'
+import { FaveType } from 'lib/faves'
 import {
   getUsers as getGithubUsers,
   followUser as followGithubUser,
   resolveCompanyHandles
 } from 'lib/github'
+import { getUsersThatExist as getGithubUsersThatExist } from 'lib/github'
 import {
   getUserDevLinks,
   parseDevLinks,
@@ -14,7 +18,10 @@ import {
 import { confirm } from 'lib/prompt'
 import {
   getUser as getTwitterUser,
-  followUser as followTwitterUser
+  followUser as followTwitterUser,
+  getAuthUser as getTwitterAuthUser,
+  getFollowingUserIdsByUserId as getTwitterFollowingUserIdsByUserId,
+  getFollowingByUserId as getTwitterFollowingByUserId
 } from 'lib/twitter'
 
 const TAB = '  '
@@ -78,7 +85,8 @@ export const handleError = (error: Error): void => {
 }
 
 export const logAndPromptFollow = async (
-  githubUsersToFollow: string[]
+  githubUsersToFollow: string[],
+  runInBackground = false
 ): Promise<void> => {
   if (githubUsersToFollow.length === 0) {
     console.log('Found no new Twitter users to follow who are also developers')
@@ -154,6 +162,11 @@ export const logAndPromptFollow = async (
         }
       }
 
+      if (runInBackground) {
+        continue
+      }
+
+      // Prompt to confirm follow
       const isFollowConfirmed = await confirm(`Follow ${login}?`)
       if (isFollowConfirmed) {
         followGithubUser(login)
@@ -168,5 +181,107 @@ export const logAndPromptFollow = async (
         console.log(`You're now following ${login} 🎉`)
       }
     }
+    /* eslint-enable no-await-in-loop */
   }
+}
+
+export const findDevelopersToFollowByFaves = async (
+  runInBackground = false
+): Promise<void> => {
+  const twitterUser = await getTwitterAuthUser()
+  if (!twitterUser) {
+    console.log('Please run setup first')
+    return
+  }
+
+  const twitterUsersFaves = await getFaveUsernames(FaveType.Twitter)
+
+  // Get auth user's following
+  let twitterFollowing = await getFollowing(FollowingKey.TWITTER)
+  if (
+    !twitterFollowing ||
+    twitterFollowing.following.length !==
+      twitterUser.public_metrics?.following_count
+  ) {
+    console.log('\nFetching Twitter users that you follow')
+    const following = await getTwitterFollowingUserIdsByUserId(twitterUser.id)
+    twitterFollowing = {
+      following,
+      evalTimestamp: Date.now()
+    }
+    await setFollowing(FollowingKey.TWITTER, twitterFollowing)
+  }
+
+  // Find github users to follow from Twitter users who Twitter faves follow
+  /* eslint-disable no-await-in-loop */
+  for (const twitterUserFave of twitterUsersFaves) {
+    const twitterUser = await getTwitterUser(twitterUserFave)
+    if (!twitterUser) {
+      console.log(`Failed to find ${twitterUserFave} on Twitter`)
+      continue
+    }
+
+    // Get fave or set it if it's not already available
+    const fave = (await getFave(FaveType.Twitter, twitterUserFave)) || {
+      key: twitterUserFave,
+      id: twitterUser.id,
+      followingCount: 0,
+      following: []
+    }
+
+    if (fave.followingCount === twitterUser.public_metrics?.following_count) {
+      console.log(
+        `\nFound no new Twitter users that ${twitterUserFave} follows`
+      )
+      continue
+    }
+
+    // Update fave's followingCount
+    fave.followingCount = twitterUser.public_metrics?.following_count
+    setFave(FaveType.Twitter, fave)
+
+    // Get latest twitter users, exclude those the authenticated user
+    // is already following
+    console.log(
+      `\nFetching latest Twitter users that ${twitterUserFave} follows`
+    )
+    const twitterFollowingUsers = (
+      await getTwitterFollowingByUserId(fave.id, 100)
+    ).filter(
+      (twitterFollowingUser) =>
+        !twitterFollowing?.following.includes(twitterFollowingUser.id)
+    )
+
+    const twitterFollowingUsersNotYetEvaluated = twitterFollowingUsers.filter(
+      (twitterFollowingUser) =>
+        !fave.following?.some((f) => f.key === twitterFollowingUser.username)
+    )
+
+    if (twitterFollowingUsersNotYetEvaluated.length === 0) {
+      console.log(`Found no new Twitter users that ${twitterUserFave} follows`)
+      continue
+    }
+
+    // Update fave's following
+    fave.following.push(
+      ...twitterFollowingUsersNotYetEvaluated.map((twitterFollowingUser) => ({
+        key: twitterFollowingUser.username,
+        evalTimestamp: Date.now()
+      }))
+    )
+    setFave(FaveType.Twitter, fave)
+
+    console.log('Checking Twitter users who are also developers')
+    const maxGithubUsersToEval = 10
+    const githubUsersToFollow = (
+      await getGithubUsersThatExist(
+        twitterFollowingUsersNotYetEvaluated.map(
+          (twitterFollowingUser) => twitterFollowingUser.username
+        )
+      )
+    ).slice(0, maxGithubUsersToEval)
+
+    await logAndPromptFollow(githubUsersToFollow, runInBackground)
+  }
+  /* eslint-enable no-await-in-loop */
 }
