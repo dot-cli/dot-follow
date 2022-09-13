@@ -5730,6 +5730,11 @@ sinon@^14.0.0:
     nise "^5.1.1"
     supports-color "^7.2.0"
 
+slack-webhook@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/slack-webhook/-/slack-webhook-1.0.0.tgz#f0ad1b73f278a14e8ab141b9555f4159d5605f38"
+  integrity sha512-UBmnu4ss4Lzkt0H5yUX0xjQH4D3nipaOQ3scNG2v6pKxaYQ7QRn0Pbx6ERcFz7BeGdpRuypuHz/kAGHMKH73fg==
+
 slash@^3.0.0:
   version "3.0.0"
   resolved "https://registry.npmjs.org/slash/-/slash-3.0.0.tgz"

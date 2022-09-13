@@ -16,6 +16,7 @@ import {
   getTwitterUsernameFromDevLinks
 } from 'lib/links'
 import { confirm } from 'lib/prompt'
+import { postMessage } from 'lib/slack'
 import {
   getUser as getTwitterUser,
   followUser as followTwitterUser,
@@ -23,6 +24,7 @@ import {
   getFollowingUserIdsByUserId as getTwitterFollowingUserIdsByUserId,
   getFollowingByUserId as getTwitterFollowingByUserId
 } from 'lib/twitter'
+import { Link } from 'lib/types'
 
 const TAB = '  '
 
@@ -64,6 +66,29 @@ export const logProps = (
       }
     }
   }
+}
+
+export const buildSlackMessage = (
+  link: Link,
+  obj: Record<string, any>,
+  longTextKeys: string[]
+): string => {
+  let text = `*${link.title}*: ${link.href}\n`
+  for (const key in obj) {
+    if (obj[key] || typeof obj[key] === 'boolean') {
+      const keyName = `${key.slice(0, 1).toUpperCase()}${key.slice(1)}`
+      if (longTextKeys.includes(key)) {
+        text += `\t*${keyName}*:\n`
+        const value = wrap(obj[key], 100)
+        for (const line of value.split('\n')) {
+          text += `\t\t${line}\n`
+        }
+      } else {
+        text += `\t*${keyName}*: ${obj[key]}\n`
+      }
+    }
+  }
+  return text
 }
 
 export const handleError = (error: Error): void => {
@@ -117,6 +142,7 @@ export const logAndPromptFollow = async (
 
       // Log dev links
       const parsedDevLinks = await parseDevLinks(devLinks)
+      const slackMessages: string[] = []
       for (const link of parsedDevLinks) {
         console.log(`${link.title}: ${colorifyURLs(link.href)}`)
 
@@ -124,17 +150,17 @@ export const logAndPromptFollow = async (
           const githubUsers = await getGithubUsers(login)
           const { name, company, blog, bio, followers, following } =
             githubUsers[0]
-          logProps(
-            {
-              name,
-              company: resolveCompanyHandles(company),
-              website: blog,
-              followers,
-              following,
-              bio
-            },
-            ['bio']
-          )
+          const props = {
+            name,
+            company: resolveCompanyHandles(company),
+            website: blog,
+            followers,
+            following,
+            bio
+          }
+          const longTextKeys = ['bio']
+          logProps(props, longTextKeys)
+          slackMessages.push(buildSlackMessage(link, props, longTextKeys))
         } else if (link.title === Sites.Twitter.title && link.username) {
           const {
             name,
@@ -145,24 +171,25 @@ export const logAndPromptFollow = async (
             description,
             pinnedTweet
           } = (await getTwitterUser(link.username)) || {}
-          logProps(
-            {
-              name,
-              url,
-              followers: public_metrics?.followers_count,
-              following: public_metrics?.following_count,
-              tweets: public_metrics?.tweet_count,
-              protected: protectedFlag,
-              verified,
-              description,
-              pinnedTweet
-            },
-            ['description', 'pinnedTweet']
-          )
+          const props = {
+            name,
+            url,
+            followers: public_metrics?.followers_count,
+            following: public_metrics?.following_count,
+            tweets: public_metrics?.tweet_count,
+            protected: protectedFlag,
+            verified,
+            description,
+            pinnedTweet
+          }
+          const longTextKeys = ['description', 'pinnedTweet']
+          logProps(props, longTextKeys)
+          slackMessages.push(buildSlackMessage(link, props, longTextKeys))
         }
       }
 
       if (runInBackground) {
+        postMessage({ text: slackMessages.join('\n') })
         continue
       }
 
@@ -186,7 +213,8 @@ export const logAndPromptFollow = async (
 }
 
 export const findDevelopersToFollowByFaves = async (
-  runInBackground = false
+  runInBackground = false,
+  silent = false
 ): Promise<void> => {
   const twitterUser = await getTwitterAuthUser()
   if (!twitterUser) {
@@ -203,7 +231,9 @@ export const findDevelopersToFollowByFaves = async (
     twitterFollowing.following.length !==
       twitterUser.public_metrics?.following_count
   ) {
-    console.log('\nFetching Twitter users that you follow')
+    if (!silent) {
+      console.log('\nFetching Twitter users that you follow')
+    }
     const following = await getTwitterFollowingUserIdsByUserId(twitterUser.id)
     twitterFollowing = {
       following,
@@ -217,7 +247,9 @@ export const findDevelopersToFollowByFaves = async (
   for (const twitterUserFave of twitterUsersFaves) {
     const twitterUser = await getTwitterUser(twitterUserFave)
     if (!twitterUser) {
-      console.log(`Failed to find ${twitterUserFave} on Twitter`)
+      if (!silent) {
+        console.log(`Failed to find ${twitterUserFave} on Twitter`)
+      }
       continue
     }
 
@@ -230,9 +262,11 @@ export const findDevelopersToFollowByFaves = async (
     }
 
     if (fave.followingCount === twitterUser.public_metrics?.following_count) {
-      console.log(
-        `\nFound no new Twitter users that ${twitterUserFave} follows`
-      )
+      if (!silent) {
+        console.log(
+          `\nFound no new Twitter users that ${twitterUserFave} follows`
+        )
+      }
       continue
     }
 
@@ -242,9 +276,11 @@ export const findDevelopersToFollowByFaves = async (
 
     // Get latest twitter users, exclude those the authenticated user
     // is already following
-    console.log(
-      `\nFetching latest Twitter users that ${twitterUserFave} follows`
-    )
+    if (!silent) {
+      console.log(
+        `\nFetching latest Twitter users that ${twitterUserFave} follows`
+      )
+    }
     const twitterFollowingUsers = (
       await getTwitterFollowingByUserId(fave.id, 100)
     ).filter(
@@ -258,7 +294,11 @@ export const findDevelopersToFollowByFaves = async (
     )
 
     if (twitterFollowingUsersNotYetEvaluated.length === 0) {
-      console.log(`Found no new Twitter users that ${twitterUserFave} follows`)
+      if (!silent) {
+        console.log(
+          `Found no new Twitter users that ${twitterUserFave} follows`
+        )
+      }
       continue
     }
 
@@ -271,7 +311,9 @@ export const findDevelopersToFollowByFaves = async (
     )
     setFave(FaveType.Twitter, fave)
 
-    console.log('Checking Twitter users who are also developers')
+    if (!silent) {
+      console.log('Checking Twitter users who are also developers')
+    }
     const maxGithubUsersToEval = 10
     const githubUsersToFollow = (
       await getGithubUsersThatExist(

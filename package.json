@@ -29,6 +29,7 @@
     "inquirer": "^8.2.0",
     "open": "^8.4.0",
     "remarkable": "^2.0.1",
+    "slack-webhook": "^1.0.0",
     "social-media-scraper": "^0.0.7"
   },
   "devDependencies": {

@@ -3,8 +3,8 @@ import { setTimeout } from 'timers/promises'
 
 import { handleError, findDevelopersToFollowByFaves } from 'lib/command'
 
-// 1 minute delay between runs when running in the background
-const TIMEOUT = 60 * 1000
+// 1 hour delay between runs when running in the background
+const TIMEOUT = 60 * 60 * 1000
 
 export default class Faves extends Command {
   static description = 'Faves'
@@ -26,7 +26,10 @@ export default class Faves extends Command {
 
     /* eslint-disable no-await-in-loop */
     do {
-      await findDevelopersToFollowByFaves(runInBackground)
+      console.log('\nScanning...')
+      const silent = runInBackground
+      await findDevelopersToFollowByFaves(runInBackground, silent)
+      console.log('\nScan finished')
       if (runInBackground) {
         await setTimeout(TIMEOUT)
       }
