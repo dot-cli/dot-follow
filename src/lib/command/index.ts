@@ -188,8 +188,9 @@ export const logAndPromptFollow = async (
         }
       }
 
+      postMessage({ text: slackMessages.join('\n') })
+
       if (runInBackground) {
-        postMessage({ text: slackMessages.join('\n') })
         continue
       }
 

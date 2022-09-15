@@ -57,7 +57,16 @@ export const getFaveUsernames = async (type: FaveType): Promise<string[]> => {
       'whelton',
       'yongfook',
       'jherr',
-      'romefort'
+      'romefort',
+      'shiffman',
+      'theburningmonk',
+      'liran_tal',
+      'simonplend',
+      'angelmanuelrs',
+      'sarah_edo',
+      'tlakomy',
+      'mathias',
+      'NodeConfEU'
     ]
   }
   return []
