@@ -39,6 +39,23 @@ export const TWITTER_ERRORS = {
   Forbidden: 'Forbidden'
 }
 
+export const TWITTER_NOT_AUTHORIZED_ERRORS = {
+  notAuthorizedForTweet: {
+    type: 'https://api.twitter.com/2/problems/not-authorized-for-resource',
+    resource_type: 'tweet'
+  }
+}
+
+export const isNotAuthorizedTweetError = (errors: any[]): boolean => {
+  return (
+    errors?.length === 1 &&
+    errors[0].type ===
+      TWITTER_NOT_AUTHORIZED_ERRORS.notAuthorizedForTweet.type &&
+    errors[0].resource_type ===
+      TWITTER_NOT_AUTHORIZED_ERRORS.notAuthorizedForTweet.resource_type
+  )
+}
+
 export const getAuthURL = (): string => {
   return AUTH_URL
 }
@@ -137,7 +154,10 @@ export const getUser = async (
     const headers = await getAuthHeaders()
     const url = `${BASE_API_URL}/users/by/username/${username}?expansions=pinned_tweet_id&user.fields=${USER_FIELDS}`
     const response = await axios.get(url, { headers })
-    if (response?.data?.errors) {
+    if (
+      response?.data?.errors &&
+      !isNotAuthorizedTweetError(response?.data?.errors)
+    ) {
       const knownErrors = new Set(Object.values(TWITTER_ERRORS))
       if (
         response?.data?.errors.find((error: any) =>

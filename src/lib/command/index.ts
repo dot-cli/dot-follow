@@ -111,7 +111,8 @@ export const handleError = (error: Error): void => {
 
 export const logAndPromptFollow = async (
   githubUsersToFollow: string[],
-  runInBackground = false
+  runInBackground = false,
+  slackChannel = '#follow'
 ): Promise<void> => {
   if (githubUsersToFollow.length === 0) {
     console.log('Found no new Twitter users to follow who are also developers')
@@ -188,7 +189,7 @@ export const logAndPromptFollow = async (
         }
       }
 
-      postMessage({ text: slackMessages.join('\n') })
+      postMessage({ text: slackMessages.join('\n'), channel: slackChannel })
 
       if (runInBackground) {
         continue

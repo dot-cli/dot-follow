@@ -25,6 +25,7 @@
     "@typescript-eslint/ban-ts-comment": "off",
     "guard-for-in": "off",
     "no-warning-comments": "off",
+    "unicorn/numeric-separators-style": "off",
     "node/no-missing-import": [
       "error",
       {
