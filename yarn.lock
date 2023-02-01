@@ -4130,10 +4130,10 @@ lru-cache@^7.7.1:
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-7.10.1.tgz#db577f42a94c168f676b638d15da8fb073448cab"
   integrity sha512-BQuhQxPuRl79J5zSXRP+uNzPOyZw2oFI9JLRQ80XswSvg21KMKNtQza9eF42rfI/3Z40RvzBdXgziEkudzjo8A==
 
-madge@^5.0.1:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/madge/-/madge-5.0.1.tgz#2096d9006558ea0669b3ade89c2cda708a24e22b"
-  integrity sha512-krmSWL9Hkgub74bOjnjWRoFPAJvPwSG6Dbta06qhWOq6X/n/FPzO3ESZvbFYVIvG2g4UHXvCJN1b+RZLaSs9nA==
+madge@^5.0.2:
+  version "5.0.2"
+  resolved "https://registry.yarnpkg.com/madge/-/madge-5.0.2.tgz#d34527af7e96de9625e8069902667c4c5a073ada"
+  integrity sha512-OeqFIgugINbVqh6keLWePD/N3u1EEYS3O9gCTD+EjcuaJa1TH30jcCxr8CEl3+neS1VM8sDCQSYoln/2li3ceg==
   dependencies:
     chalk "^4.1.1"
     commander "^7.2.0"
