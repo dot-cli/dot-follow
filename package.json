@@ -27,7 +27,7 @@
     "ghauth": "chico/ghauth.git#5.0.2",
     "github-api": "^3.4.0",
     "inquirer": "^8.2.0",
-    "open": "^8.4.0",
+    "open": "^8.4.2",
     "remarkable": "^2.0.1",
     "slack-webhook": "^1.0.0",
     "social-media-scraper": "^0.0.7"
